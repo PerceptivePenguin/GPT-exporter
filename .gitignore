@@ -26,3 +26,5 @@ web-ext.config.ts
 *.sw?
 
 AGENTS.md
+TODO.md
+docs/*
