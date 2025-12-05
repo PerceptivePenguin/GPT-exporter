@@ -2,6 +2,11 @@ type ChatRole = 'assistant' | 'user' | 'system' | 'tool' | 'unknown';
 
 const EXPORT_BUTTON_ID = 'gpt-exporter-md-button';
 const STYLE_ID = 'gpt-exporter-style';
+const MODAL_OVERLAY_ID = 'gpt-exporter-qa-overlay';
+
+let qaPairsCache: QAPair[] = [];
+let modalKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
+let modalOverlay: HTMLDivElement | null = null;
 
 export default defineContentScript({
   matches: ['*://chat.openai.com/*', '*://chatgpt.com/*'],
@@ -34,15 +39,15 @@ function createExportButton() {
   button.type = 'button';
   button.textContent = 'Export MD';
   button.addEventListener('click', async () => {
-    button.disabled = true;
     const originalLabel = 'Export MD';
+    button.disabled = true;
     try {
-      button.textContent = 'Exporting...';
-      await exportConversation();
-      button.textContent = 'Exported';
+      button.textContent = 'Preparing...';
+      const success = await prepareQuestionSelection();
+      button.textContent = success ? 'Choose Q&A' : 'No Answers';
     } catch (error) {
-      console.error('[GPT Exporter] Failed to export conversation', error);
-      button.textContent = 'Retry Export';
+      console.error('[GPT Exporter] Failed to prepare selection', error);
+      button.textContent = 'Retry Setup';
     } finally {
       setTimeout(() => {
         button.textContent = originalLabel;
@@ -53,20 +58,27 @@ function createExportButton() {
   return button;
 }
 
-async function exportConversation() {
+async function prepareQuestionSelection() {
   const originalScroll = window.scrollY;
   await ensureConversationLoaded(originalScroll);
 
   const messages = collectMessages();
   if (messages.length === 0) {
     console.warn('[GPT Exporter] No messages found on this page.');
-    return;
+    window.alert('No messages detected. Please ensure the conversation is loaded.');
+    return false;
   }
 
-  const exportedAt = new Date();
-  const title = sanitizeFilename(document.title || 'ChatGPT Conversation');
-  const markdown = buildDocument(title, messages, exportedAt);
-  triggerDownload(markdown, title, exportedAt);
+  const qaPairs = groupMessagesIntoQA(messages);
+  if (!qaPairs.length) {
+    console.warn('[GPT Exporter] No answered questions found.');
+    window.alert('No answered questions found. Please ensure at least one prompt has a response.');
+    return false;
+  }
+
+  qaPairsCache = qaPairs;
+  openSelectionModal(qaPairs);
+  return true;
 }
 
 async function ensureConversationLoaded(originalScroll: number) {
@@ -96,6 +108,253 @@ function collectMessages(): ExportMessage[] {
   return unique
     .map((node) => serializeMessage(node))
     .filter((item): item is ExportMessage => Boolean(item));
+}
+
+function groupMessagesIntoQA(messages: ExportMessage[]): QAPair[] {
+  const pairs: QAPair[] = [];
+  let currentQuestion: ExportMessage | null = null;
+  let currentAnswers: ExportMessage[] = [];
+  let counter = 0;
+
+  const flush = () => {
+    if (!currentQuestion) return;
+    const meaningfulAnswers = currentAnswers.filter((answer) =>
+      isMeaningfulAnswer(answer.content),
+    );
+    if (!meaningfulAnswers.length) {
+      currentQuestion = null;
+      currentAnswers = [];
+      return;
+    }
+    counter += 1;
+    const question = currentQuestion;
+    pairs.push({
+      id: `qa-${counter}`,
+      question,
+      answers: meaningfulAnswers,
+      summary: summarizeQuestion(question.content),
+    });
+    currentQuestion = null;
+    currentAnswers = [];
+  };
+
+  for (const message of messages) {
+    if (message.role === 'user') {
+      flush();
+      currentQuestion = message;
+      currentAnswers = [];
+      continue;
+    }
+
+    if (!currentQuestion) continue;
+
+    if (message.role === 'assistant' || message.role === 'tool') {
+      currentAnswers.push(message);
+    }
+  }
+
+  flush();
+  return pairs;
+}
+
+function summarizeQuestion(markdown: string) {
+  const lines = markdown
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const summary = lines[0] || '_empty question_';
+  return summary.length > 120 ? `${summary.slice(0, 117)}...` : summary;
+}
+
+function openSelectionModal(pairs: QAPair[]) {
+  closeSelectionModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = MODAL_OVERLAY_ID;
+  overlay.className = 'gpt-exporter-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'gpt-exporter-modal';
+  overlay.appendChild(modal);
+
+  const header = document.createElement('div');
+  header.className = 'gpt-exporter-modal-header';
+  const title = document.createElement('h2');
+  title.textContent = 'Select Questions';
+  const subtitle = document.createElement('p');
+  subtitle.textContent =
+    'Choose the prompts you want to include. Only questions with responses appear here.';
+  header.append(title, subtitle);
+  modal.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'gpt-exporter-qa-list';
+  renderQAList(list, pairs);
+  modal.appendChild(list);
+
+  const actions = document.createElement('div');
+  actions.className = 'gpt-exporter-modal-actions';
+
+  const confirmButton = createModalButton('Export Selected', true);
+  confirmButton.addEventListener('click', () => {
+    void handleConfirmExport(list, confirmButton);
+  });
+
+  const selectAllButton = createModalButton('Select All');
+  selectAllButton.addEventListener('click', () => {
+    setAllCheckboxes(list, true);
+    updateConfirmState(list, confirmButton);
+  });
+
+  const clearButton = createModalButton('Clear');
+  clearButton.addEventListener('click', () => {
+    setAllCheckboxes(list, false);
+    updateConfirmState(list, confirmButton);
+  });
+
+  const cancelButton = createModalButton('Cancel');
+  cancelButton.addEventListener('click', () => {
+    closeSelectionModal();
+  });
+
+  actions.append(selectAllButton, clearButton, cancelButton, confirmButton);
+  modal.appendChild(actions);
+
+  list.addEventListener('change', () => updateConfirmState(list, confirmButton));
+  updateConfirmState(list, confirmButton);
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      closeSelectionModal();
+    }
+  });
+
+  modalKeydownHandler = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSelectionModal();
+    }
+  };
+
+  document.addEventListener('keydown', modalKeydownHandler, true);
+  document.body.appendChild(overlay);
+  modalOverlay = overlay;
+
+  const firstCheckbox = list.querySelector<HTMLInputElement>('input[type="checkbox"]');
+  firstCheckbox?.focus();
+}
+
+function closeSelectionModal() {
+  if (modalOverlay) {
+    modalOverlay.remove();
+    modalOverlay = null;
+  }
+  if (modalKeydownHandler) {
+    document.removeEventListener('keydown', modalKeydownHandler, true);
+    modalKeydownHandler = null;
+  }
+}
+
+function renderQAList(container: HTMLElement, pairs: QAPair[]) {
+  container.innerHTML = '';
+  pairs.forEach((pair) => {
+    const label = document.createElement('label');
+    label.className = 'gpt-exporter-qa-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.dataset.qaId = pair.id;
+
+    const textWrapper = document.createElement('div');
+    textWrapper.className = 'gpt-exporter-qa-text';
+
+    const summary = document.createElement('div');
+    summary.className = 'gpt-exporter-qa-summary';
+    summary.textContent = pair.summary;
+
+    const meta = document.createElement('div');
+    meta.className = 'gpt-exporter-qa-meta';
+    const answerLabel = pair.answers.length > 1 ? 'answers' : 'answer';
+    meta.textContent = `${pair.answers.length} ${answerLabel}`;
+
+    textWrapper.append(summary, meta);
+    label.append(checkbox, textWrapper);
+    container.appendChild(label);
+  });
+}
+
+function createModalButton(label: string, primary = false) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.className = primary
+    ? 'gpt-exporter-btn primary'
+    : 'gpt-exporter-btn secondary';
+  return button;
+}
+
+function updateConfirmState(container: HTMLElement, button: HTMLButtonElement) {
+  const hasSelection = getSelectedPairIds(container).length > 0;
+  button.disabled = !hasSelection;
+}
+
+function setAllCheckboxes(container: HTMLElement, checked: boolean) {
+  const checkboxes = container.querySelectorAll<HTMLInputElement>(
+    'input[type="checkbox"][data-qa-id]',
+  );
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = checked;
+  });
+}
+
+function getSelectedPairIds(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLInputElement>(
+      'input[type="checkbox"][data-qa-id]',
+    ),
+  )
+    .filter((input) => input.checked && input.dataset.qaId)
+    .map((input) => input.dataset.qaId!);
+}
+
+async function handleConfirmExport(
+  container: HTMLElement,
+  button: HTMLButtonElement,
+) {
+  const selectedIds = getSelectedPairIds(container);
+  if (!selectedIds.length) {
+    window.alert('Please select at least one question before exporting.');
+    return;
+  }
+
+  const originalText = button.textContent || 'Export Selected';
+  button.disabled = true;
+  button.textContent = 'Exporting...';
+
+  try {
+    await exportSelectedPairs(selectedIds);
+    closeSelectionModal();
+  } catch (error) {
+    console.error('[GPT Exporter] Failed to export selected questions', error);
+    button.textContent = 'Retry Export';
+    button.disabled = false;
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  }
+}
+
+async function exportSelectedPairs(ids: string[]) {
+  const idSet = new Set(ids);
+  const selected = qaPairsCache.filter((pair) => idSet.has(pair.id));
+  if (!selected.length) {
+    throw new Error('Selection is empty after filtering.');
+  }
+  const exportedAt = new Date();
+  const title = sanitizeFilename(document.title || 'ChatGPT Conversation');
+  const markdown = buildQADocument(title, selected, exportedAt);
+  triggerDownload(markdown, title, exportedAt);
 }
 
 function serializeMessage(node: HTMLElement): ExportMessage | null {
@@ -329,7 +588,29 @@ interface ExportMessage {
   content: string;
 }
 
-function buildDocument(title: string, messages: ExportMessage[], exportedAt: Date) {
+interface QAPair {
+  id: string;
+  question: ExportMessage;
+  answers: ExportMessage[];
+  summary: string;
+}
+
+const ERROR_PATTERNS = [
+  /something went wrong/i,
+  /network error/i,
+  /an error occurred/i,
+  /bad gateway/i,
+  /please try again/i,
+  /timed out/i,
+];
+
+function isMeaningfulAnswer(content: string) {
+  const normalized = content.replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  return !ERROR_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function buildQADocument(title: string, pairs: QAPair[], exportedAt: Date) {
   const lines: string[] = [];
   lines.push(`# ${title}`);
   lines.push('');
@@ -337,23 +618,55 @@ function buildDocument(title: string, messages: ExportMessage[], exportedAt: Dat
   lines.push(`Source: ${location.href}`);
   lines.push('');
 
-  const roleLabel: Record<ChatRole, string> = {
-    assistant: 'Assistant',
-    user: 'User',
-    system: 'System',
-    tool: 'Tool',
-    unknown: 'Unknown',
-  };
+  if (!pairs.length) {
+    lines.push('_No questions selected._');
+    lines.push('');
+  }
 
-  messages.forEach((message, index) => {
-    lines.push(`## ${index + 1}. ${roleLabel[message.role]}`);
+  pairs.forEach((pair, index) => {
+    lines.push(`## Q${index + 1}`);
     lines.push('');
-    lines.push(message.content || '_empty message_');
+    lines.push('### Question');
     lines.push('');
+    lines.push(pair.question.content || '_empty question_');
+    lines.push('');
+
+    if (pair.answers.length === 1) {
+      const answer = pair.answers[0];
+      lines.push(`### Answer (${formatRoleLabel(answer.role)})`);
+      lines.push('');
+      lines.push(answer.content || '_empty answer_');
+      lines.push('');
+      return;
+    }
+
+    lines.push('### Answers');
+    lines.push('');
+    pair.answers.forEach((answer, answerIndex) => {
+      lines.push(`#### Answer ${answerIndex + 1} (${formatRoleLabel(answer.role)})`);
+      lines.push('');
+      lines.push(answer.content || '_empty answer_');
+      lines.push('');
+    });
   });
 
   const documentText = lines.join('\n');
   return normalizeBlankLines(documentText).trimEnd() + '\n';
+}
+
+function formatRoleLabel(role: ChatRole) {
+  switch (role) {
+    case 'assistant':
+      return 'Assistant';
+    case 'user':
+      return 'User';
+    case 'system':
+      return 'System';
+    case 'tool':
+      return 'Tool';
+    default:
+      return 'Unknown';
+  }
 }
 
 function triggerDownload(markdown: string, title: string, exportedAt: Date) {
@@ -419,6 +732,100 @@ function injectStyle() {
     }
     #${EXPORT_BUTTON_ID}:disabled {
       opacity: 0.65;
+      cursor: not-allowed;
+    }
+    #${MODAL_OVERLAY_ID} {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    #${MODAL_OVERLAY_ID} .gpt-exporter-modal {
+      width: min(560px, calc(100% - 32px));
+      max-height: 85vh;
+      background: #0f172a;
+      color: #f9fafb;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 22px;
+      overflow: hidden;
+    }
+    .gpt-exporter-modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .gpt-exporter-modal-header p {
+      margin: 4px 0 0;
+      color: rgba(226, 232, 240, 0.82);
+      font-size: 14px;
+    }
+    .gpt-exporter-qa-list {
+      flex: 1;
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .gpt-exporter-qa-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .gpt-exporter-qa-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .gpt-exporter-qa-item input[type="checkbox"] {
+      margin-top: 4px;
+    }
+    .gpt-exporter-qa-summary {
+      font-weight: 600;
+      font-size: 14px;
+      color: #f8fafc;
+    }
+    .gpt-exporter-qa-meta {
+      font-size: 12px;
+      color: rgba(226, 232, 240, 0.75);
+      margin-top: 4px;
+    }
+    .gpt-exporter-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .gpt-exporter-btn {
+      border-radius: 10px;
+      padding: 8px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+    .gpt-exporter-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: rgba(51, 65, 85, 0.95);
+    }
+    .gpt-exporter-btn.primary {
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+      border-color: rgba(124, 58, 237, 0.6);
+    }
+    .gpt-exporter-btn.primary:disabled {
+      opacity: 0.6;
       cursor: not-allowed;
     }
   `;
