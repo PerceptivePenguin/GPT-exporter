@@ -39,23 +39,24 @@ export function collectUserQuestions(): QuestionEntry[] {
   }
 
   const entries: QuestionEntry[] = [];
+  const seenKeys = new Set<string>();
 
   unique.forEach((node) => {
-    const role = detectRole(node);
+    const root = resolveMessageRoot(node);
+    if (!root) return;
+    const role = detectRole(root);
     if (role !== 'user') return;
-    const contentRoot = findContentRoot(node);
+    const contentRoot = findContentRoot(root);
     const markdown = contentRoot ? elementToMarkdown(contentRoot) : '';
     const summary = summarize(markdown);
-    const id = getMessageKey(node, markdown);
-    entries.push({ id, node, summary });
+    if (isNoiseSummary(summary)) return;
+    const key = getMessageKey(root, markdown);
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    entries.push({ id: key, node: root, summary });
   });
 
-  const seenIds = new Set<string>();
-  return entries.filter((entry) => {
-    if (seenIds.has(entry.id)) return false;
-    seenIds.add(entry.id);
-    return true;
-  });
+  return entries;
 }
 
 function serializeMessage(node: HTMLElement): ExportMessage | null {
@@ -118,15 +119,40 @@ function summarize(markdown: string) {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  const summary = lines[0] || '_empty question_';
+  let summary = lines[0] || '_empty question_';
+  if (summary.toLowerCase().startsWith('you said')) {
+    summary = summary.slice('you said'.length).trim() || summary;
+  }
   return summary.length > 120 ? `${summary.slice(0, 117)}...` : summary;
 }
 
-function getMessageKey(node: HTMLElement, fallback: string) {
-  return (
+function getMessageKey(node: HTMLElement, markdown: string) {
+  const id =
     node.getAttribute('data-message-id') ||
     node.dataset.messageId ||
     node.id ||
-    fallback.slice(0, 80)
-  );
+    '';
+  if (id) return id;
+  const normalized = normalizeText(markdown);
+  return `${normalized.slice(0, 160)}::${normalized.length}`;
+}
+
+function normalizeText(text: string) {
+  return text.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function resolveMessageRoot(node: HTMLElement) {
+  let current: HTMLElement | null = node;
+  while (current && current !== document.body) {
+    if (current.getAttribute('data-message-author-role') || current.getAttribute('data-message-id')) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function isNoiseSummary(summary: string) {
+  const normalized = normalizeText(summary);
+  return normalized === 'you said' || normalized === '_empty question_';
 }

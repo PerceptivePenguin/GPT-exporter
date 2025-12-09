@@ -20,6 +20,7 @@ const HIGHLIGHT_CLASS = 'gpt-exporter-highlight';
 
 let qaPairsCache: QAPair[] = [];
 let questionEntries: QuestionEntry[] = [];
+let lastQuestionIds: string[] = [];
 let questionRefreshTimer: number | null = null;
 let questionObserver: MutationObserver | null = null;
 
@@ -158,7 +159,16 @@ function scheduleQuestionRefresh() {
 }
 
 function refreshQuestionEntries() {
-  questionEntries = collectUserQuestions();
+  const nextEntries = collectUserQuestions();
+  const nextIds = nextEntries.map((item) => item.id);
+  if (
+    nextIds.length === lastQuestionIds.length &&
+    nextIds.every((id, idx) => id === lastQuestionIds[idx])
+  ) {
+    return;
+  }
+  questionEntries = nextEntries;
+  lastQuestionIds = nextIds;
   updateNavigationPanel(questionEntries);
 }
 
