@@ -1,5 +1,5 @@
 import { elementToMarkdown } from '../export/markdown';
-import type { ExportMessage } from '../types/conversation';
+import type { ExportMessage, QuestionEntry } from '../types/conversation';
 import type { ChatRole } from '../types/conversation';
 
 const MESSAGE_SELECTOR =
@@ -22,6 +22,40 @@ export function collectMessages(): ExportMessage[] {
   return unique
     .map((node) => serializeMessage(node))
     .filter((item): item is ExportMessage => Boolean(item));
+}
+
+export function collectUserQuestions(): QuestionEntry[] {
+  const nodes = Array.from(
+    document.querySelectorAll<HTMLElement>(MESSAGE_SELECTOR),
+  );
+  const unique: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
+
+  for (const node of nodes) {
+    if (!seen.has(node)) {
+      seen.add(node);
+      unique.push(node);
+    }
+  }
+
+  const entries: QuestionEntry[] = [];
+
+  unique.forEach((node) => {
+    const role = detectRole(node);
+    if (role !== 'user') return;
+    const contentRoot = findContentRoot(node);
+    const markdown = contentRoot ? elementToMarkdown(contentRoot) : '';
+    const summary = summarize(markdown);
+    const id = getMessageKey(node, markdown);
+    entries.push({ id, node, summary });
+  });
+
+  const seenIds = new Set<string>();
+  return entries.filter((entry) => {
+    if (seenIds.has(entry.id)) return false;
+    seenIds.add(entry.id);
+    return true;
+  });
 }
 
 function serializeMessage(node: HTMLElement): ExportMessage | null {
@@ -77,4 +111,22 @@ function findContentRoot(node: HTMLElement): HTMLElement | null {
   }
 
   return node;
+}
+
+function summarize(markdown: string) {
+  const lines = markdown
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const summary = lines[0] || '_empty question_';
+  return summary.length > 120 ? `${summary.slice(0, 117)}...` : summary;
+}
+
+function getMessageKey(node: HTMLElement, fallback: string) {
+  return (
+    node.getAttribute('data-message-id') ||
+    node.dataset.messageId ||
+    node.id ||
+    fallback.slice(0, 80)
+  );
 }

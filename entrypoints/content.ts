@@ -1,40 +1,66 @@
-import { collectMessages } from '../src/dom/message-parser';
+import { collectMessages, collectUserQuestions } from '../src/dom/message-parser';
 import { triggerDownload, sanitizeFilename } from '../src/export/download';
 import { buildQADocument } from '../src/export/markdown';
 import { groupMessagesIntoQA } from '../src/qa/grouping';
 import { injectUIStyles } from '../src/styles';
 import { openSelectionModal } from '../src/ui/modal';
+import {
+  toggleNavigationPanel,
+  updateNavigationPanel,
+} from '../src/ui/navigation';
 import type { QAPair } from '../src/types/conversation';
+import type { QuestionEntry } from '../src/types/conversation';
 
 const EXPORT_BUTTON_ID = 'gpt-exporter-md-button';
+const NAV_BUTTON_ID = 'gpt-exporter-nav-button';
 const STYLE_ID = 'gpt-exporter-style';
 const MODAL_OVERLAY_ID = 'gpt-exporter-qa-overlay';
+const NAV_PANEL_ID = 'gpt-exporter-nav-panel';
+const HIGHLIGHT_CLASS = 'gpt-exporter-highlight';
 
 let qaPairsCache: QAPair[] = [];
+let questionEntries: QuestionEntry[] = [];
+let questionRefreshTimer: number | null = null;
+let questionObserver: MutationObserver | null = null;
 
 export default defineContentScript({
   matches: ['*://chat.openai.com/*', '*://chatgpt.com/*'],
   runAt: 'document_end',
   main() {
-    injectUIStyles(STYLE_ID, EXPORT_BUTTON_ID, MODAL_OVERLAY_ID);
-    mountButton();
+    injectUIStyles(
+      STYLE_ID,
+      EXPORT_BUTTON_ID,
+      MODAL_OVERLAY_ID,
+      NAV_BUTTON_ID,
+      NAV_PANEL_ID,
+      HIGHLIGHT_CLASS,
+    );
+    mountButtons();
     keepButtonAlive();
+    startQuestionIndexWatcher();
   },
 });
 
 function keepButtonAlive() {
   const observer = new MutationObserver(() => {
     if (!document.getElementById(EXPORT_BUTTON_ID)) {
-      mountButton();
+      mountButtons();
+    }
+    if (!document.getElementById(NAV_BUTTON_ID)) {
+      mountButtons();
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
-function mountButton() {
-  if (!document.body || document.getElementById(EXPORT_BUTTON_ID)) return;
-  const button = createExportButton();
-  document.body.appendChild(button);
+function mountButtons() {
+  if (!document.body) return;
+  if (!document.getElementById(EXPORT_BUTTON_ID)) {
+    document.body.appendChild(createExportButton());
+  }
+  if (!document.getElementById(NAV_BUTTON_ID)) {
+    document.body.appendChild(createNavigationButton());
+  }
 }
 
 function createExportButton() {
@@ -58,6 +84,20 @@ function createExportButton() {
         button.disabled = false;
       }, 900);
     }
+  });
+  return button;
+}
+
+function createNavigationButton() {
+  const button = document.createElement('button');
+  button.id = NAV_BUTTON_ID;
+  button.type = 'button';
+  button.textContent = '问题导航';
+  button.addEventListener('click', () => {
+    toggleNavigationPanel(questionEntries, {
+      panelId: NAV_PANEL_ID,
+      onEntryClick: handleNavigationClick,
+    });
   });
   return button;
 }
@@ -100,6 +140,37 @@ async function exportSelectedPairs(ids: string[]) {
   triggerDownload(markdown, title, exportedAt);
 }
 
+function startQuestionIndexWatcher() {
+  refreshQuestionEntries();
+  if (questionObserver) {
+    questionObserver.disconnect();
+  }
+  questionObserver = new MutationObserver(scheduleQuestionRefresh);
+  questionObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function scheduleQuestionRefresh() {
+  if (questionRefreshTimer) return;
+  questionRefreshTimer = window.setTimeout(() => {
+    questionRefreshTimer = null;
+    refreshQuestionEntries();
+  }, 200);
+}
+
+function refreshQuestionEntries() {
+  questionEntries = collectUserQuestions();
+  updateNavigationPanel(questionEntries);
+}
+
+function handleNavigationClick(entry: QuestionEntry) {
+  try {
+    entry.node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    flashHighlight(entry.node);
+  } catch (error) {
+    console.error('[GPT Exporter] Failed to scroll to question', error);
+  }
+}
+
 async function ensureConversationLoaded(originalScroll: number) {
   window.scrollTo({ top: 0, behavior: 'auto' });
   await delay(350);
@@ -110,4 +181,11 @@ async function ensureConversationLoaded(originalScroll: number) {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function flashHighlight(node: HTMLElement) {
+  node.classList.add(HIGHLIGHT_CLASS);
+  window.setTimeout(() => {
+    node.classList.remove(HIGHLIGHT_CLASS);
+  }, 1400);
 }

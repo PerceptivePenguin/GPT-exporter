@@ -11,3 +11,9 @@ export interface QAPair {
   answers: ExportMessage[];
   summary: string;
 }
+
+export interface QuestionEntry {
+  id: string;
+  node: HTMLElement;
+  summary: string;
+}
