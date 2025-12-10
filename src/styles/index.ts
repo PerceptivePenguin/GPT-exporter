@@ -18,20 +18,20 @@ export function injectUIStyles(
         right: 20px;
         bottom: ${bottom}px;
         z-index: 9999;
-        padding: 9px 12px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.2);
-        background: linear-gradient(135deg, #0f172a, #1e293b);
-        color: #e5e7eb;
+        padding: 11px 14px;
+        border-radius: 12px;
+        border: 2px solid #212121;
+        background: #ffd900;
+        color: #212121;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        box-shadow: 0 6px 0 #212121;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
       }
       #${id}:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 34px rgba(0,0,0,0.32);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 #212121;
       }
       #${id}:disabled {
         opacity: 0.65;
@@ -45,20 +45,20 @@ export function injectUIStyles(
       right: 20px;
       bottom: 24px;
       z-index: 9999;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: linear-gradient(135deg, #1f2937, #111827);
-      color: #e5e7eb;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 2px solid #212121;
+      background: #ffd900;
+      color: #212121;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      box-shadow: 0 6px 0 #212121;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
     }
     #${buttonId}:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 34px rgba(0,0,0,0.32);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 #212121;
     }
     #${buttonId}:disabled {
       opacity: 0.65;
@@ -68,7 +68,7 @@ export function injectUIStyles(
       position: fixed;
       inset: 0;
       z-index: 10000;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(33, 33, 33, 0.55);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -78,11 +78,11 @@ export function injectUIStyles(
     #${overlayId} .gpt-exporter-modal {
       width: min(560px, calc(100% - 32px));
       max-height: 85vh;
-      background: #0f172a;
-      color: #f9fafb;
+      background: #fefae8;
+      color: #212121;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      border: 2px solid #212121;
+      box-shadow: 0 10px 0 #212121;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -95,27 +95,32 @@ export function injectUIStyles(
     }
     .gpt-exporter-modal-header p {
       margin: 4px 0 0;
-      color: rgba(226, 232, 240, 0.82);
+      color: #3b3b3b;
       font-size: 14px;
     }
     .gpt-exporter-qa-list {
       flex: 1;
       overflow: auto;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
+      border: 2px solid #212121;
+      border-radius: 14px;
       padding: 8px;
-      background: rgba(15, 23, 42, 0.6);
+      background: #fffdf5;
     }
     .gpt-exporter-qa-item {
       display: flex;
       gap: 12px;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.15s ease;
+      background: #ffffff;
+      border: 2px solid #212121;
+      box-shadow: 0 4px 0 #212121;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
     .gpt-exporter-qa-item:hover {
-      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #212121;
+      background: #fff6d6;
     }
     .gpt-exporter-qa-item input[type="checkbox"] {
       margin-top: 4px;
@@ -123,11 +128,11 @@ export function injectUIStyles(
     .gpt-exporter-qa-summary {
       font-weight: 600;
       font-size: 14px;
-      color: #f8fafc;
+      color: #212121;
     }
     .gpt-exporter-qa-meta {
       font-size: 12px;
-      color: rgba(226, 232, 240, 0.75);
+      color: #3b3b3b;
       margin-top: 4px;
     }
     .gpt-exporter-modal-actions {
@@ -139,20 +144,23 @@ export function injectUIStyles(
     .gpt-exporter-btn {
       border-radius: 10px;
       padding: 8px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: rgba(30, 41, 59, 0.9);
-      color: #f8fafc;
+      border: 2px solid #212121;
+      background: #fff;
+      color: #212121;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+      box-shadow: 0 4px 0 #212121;
+      transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
     }
     .gpt-exporter-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      background: rgba(51, 65, 85, 0.95);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #212121;
+      background: #fff6d6;
     }
     .gpt-exporter-btn.primary {
-      background: linear-gradient(135deg, #4c1d95, #7c3aed);
-      border-color: rgba(124, 58, 237, 0.6);
+      background: #ffd900;
+      border-color: #212121;
+      color: #212121;
     }
     .gpt-exporter-btn.primary:disabled {
       opacity: 0.6;
@@ -166,11 +174,11 @@ export function injectUIStyles(
       bottom: 120px;
       width: min(360px, calc(100% - 32px));
       max-height: 70vh;
-      background: rgba(15, 23, 42, 0.95);
-      color: #f9fafb;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      background: #fefae8;
+      color: #212121;
+      border-radius: 16px;
+      border: 2px solid #212121;
+      box-shadow: 0 10px 0 #212121;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -181,17 +189,19 @@ export function injectUIStyles(
       align-items: center;
       justify-content: space-between;
       padding: 12px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 2px solid #212121;
       font-weight: 700;
       font-size: 14px;
     }
     #${navPanelId} .gpt-exporter-nav-close {
-      background: none;
-      border: none;
-      color: #e2e8f0;
+      background: #ffd900;
+      border: 2px solid #212121;
+      color: #212121;
       font-size: 14px;
       cursor: pointer;
       padding: 4px;
+      border-radius: 8px;
+      box-shadow: 0 3px 0 #212121;
     }
     #${navPanelId} .gpt-exporter-nav-list {
       overflow: auto;
@@ -206,17 +216,19 @@ export function injectUIStyles(
       gap: 10px;
       width: 100%;
       text-align: left;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.03);
-      color: #f8fafc;
-      padding: 8px 10px;
-      border-radius: 10px;
+      border: 2px solid #212121;
+      background: #fff;
+      color: #212121;
+      padding: 10px 12px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.12s ease, transform 0.12s ease;
+      box-shadow: 0 4px 0 #212121;
+      transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
     }
     #${navPanelId} .gpt-exporter-nav-item:hover {
-      background: rgba(255, 255, 255, 0.06);
-      transform: translateY(-1px);
+      background: #fff6d6;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #212121;
     }
     #${navPanelId} .gpt-exporter-nav-index {
       min-width: 20px;
@@ -225,10 +237,11 @@ export function injectUIStyles(
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(124, 58, 237, 0.2);
-      color: #c4b5fd;
+      background: #ffd900;
+      color: #212121;
       font-size: 12px;
       font-weight: 700;
+      border: 2px solid #212121;
     }
     #${navPanelId} .gpt-exporter-nav-summary {
       flex: 1;
@@ -241,13 +254,13 @@ export function injectUIStyles(
     }
     #${navPanelId} .gpt-exporter-nav-empty {
       padding: 14px;
-      color: rgba(226, 232, 240, 0.8);
+      color: #3b3b3b;
       font-size: 13px;
       text-align: center;
     }
     ` : ''}
     .${highlightClass} {
-      outline: 2px solid rgba(124, 58, 237, 0.8);
+      outline: 3px solid #ffd900;
       outline-offset: 3px;
       transition: outline-color 0.4s ease;
     }
