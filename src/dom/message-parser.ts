@@ -46,8 +46,7 @@ export function collectUserQuestions(): QuestionEntry[] {
     if (!root) return;
     const role = detectRole(root);
     if (role !== 'user') return;
-    const contentRoot = findContentRoot(root);
-    const markdown = contentRoot ? elementToMarkdown(contentRoot) : '';
+    const markdown = buildMarkdown(root, role);
     const summary = summarize(markdown);
     if (isNoiseSummary(summary)) return;
     const key = getMessageKey(root, markdown);
@@ -61,8 +60,7 @@ export function collectUserQuestions(): QuestionEntry[] {
 
 function serializeMessage(node: HTMLElement): ExportMessage | null {
   const role = detectRole(node);
-  const contentRoot = findContentRoot(node);
-  const markdown = contentRoot ? elementToMarkdown(contentRoot) : '';
+  const markdown = buildMarkdown(node, role);
   const trimmed = markdown.trimEnd();
 
   return { role, content: trimmed };
@@ -155,4 +153,54 @@ function resolveMessageRoot(node: HTMLElement) {
 function isNoiseSummary(summary: string) {
   const normalized = normalizeText(summary);
   return normalized === 'you said' || normalized === '_empty question_';
+}
+
+function buildMarkdown(node: HTMLElement, role: ChatRole) {
+  const contentRoot = findContentRoot(node);
+  const markdown = contentRoot ? elementToMarkdown(contentRoot) : '';
+  const cleaned =
+    role === 'user' ? stripUserImageArtifacts(markdown) : markdown;
+  return cleaned.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function stripUserImageArtifacts(markdown: string) {
+  const withoutMarkdownImages = markdown.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (_, alt: string) => {
+      const altText = (alt || '').trim();
+      if (isImagePlaceholder(altText)) return '';
+      return altText || '';
+    },
+  );
+
+  const imageUrlPattern =
+    /^(https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg)(?:\?\S*)?)$/i;
+  const hostedImagePattern =
+    /^(https?:\/\/(?:files\.oaiusercontent\.com|files\.openai\.com|oaidalleapiprodscus\.blob\.core\.windows\.net)[^\s]*)$/i;
+
+  const cleanedLines = withoutMarkdownImages
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (imageUrlPattern.test(trimmed)) return false;
+      if (hostedImagePattern.test(trimmed)) return false;
+      if (isImagePlaceholder(trimmed)) return false;
+      return true;
+    });
+
+  return cleanedLines.join('\n');
+}
+
+function isImagePlaceholder(text: string) {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return false;
+  if (/^uploaded\s+image(\s*\d+)?$/.test(normalized)) return true;
+  if (/^image(\s*\d+)?$/.test(normalized)) return true;
+  if (/^screenshot(\s*\d+)?$/.test(normalized)) return true;
+  if (/^picture(\s*\d+)?$/.test(normalized)) return true;
+  if (/^photo(\s*\d+)?$/.test(normalized)) return true;
+  if (/^image\.(png|jpe?g|gif|webp|svg)$/.test(normalized)) return true;
+  return false;
 }
