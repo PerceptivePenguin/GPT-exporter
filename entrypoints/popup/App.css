@@ -1,9 +1,24 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 #root {
   width: 360px;
   padding: 1rem;
   background: #0f172a;
   color: #f8fafc;
   font-family: 'Inter', sans-serif;
+
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .settings-popup {
@@ -68,7 +83,7 @@
   gap: 0.6rem;
 
   height: 360px;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 
 .panel header {
