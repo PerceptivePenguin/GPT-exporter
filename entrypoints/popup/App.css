@@ -6,10 +6,55 @@
   font-family: 'Inter', sans-serif;
 }
 
+.settings-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .settings-popup h1 {
   margin: 0 0 1rem;
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+.panel-switch {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(30, 41, 59, 0.8);
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.panel-switch button {
+  border: none;
+  background: transparent;
+  color: #cbd5f5;
+  padding: 0.3rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.panel-switch button.active {
+  background: linear-gradient(135deg, #4c1d95, #7c3aed);
+  color: #fff;
+}
+
+.panel-switch svg {
+  width: 18px;
+  height: 18px;
 }
 
 .panel {
