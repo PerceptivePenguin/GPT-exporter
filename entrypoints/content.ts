@@ -8,11 +8,15 @@ import {
   toggleNavigationPanel,
   updateNavigationPanel,
 } from '../src/ui/navigation';
+import { getActiveProvider } from '../src/config/provider-registry';
+import { loadSummaryPromptTemplate } from '../src/config/summary-prompt';
+import { summarizeConversation } from '../src/services/llm-client';
 import type { QAPair } from '../src/types/conversation';
 import type { QuestionEntry } from '../src/types/conversation';
 
 const EXPORT_BUTTON_ID = 'gpt-exporter-md-button';
 const NAV_BUTTON_ID = 'gpt-exporter-nav-button';
+const SUMMARY_BUTTON_ID = 'gpt-exporter-summary-button';
 const STYLE_ID = 'gpt-exporter-style';
 const MODAL_OVERLAY_ID = 'gpt-exporter-qa-overlay';
 const NAV_PANEL_ID = 'gpt-exporter-nav-panel';
@@ -32,7 +36,7 @@ export default defineContentScript({
       STYLE_ID,
       EXPORT_BUTTON_ID,
       MODAL_OVERLAY_ID,
-      NAV_BUTTON_ID,
+      [SUMMARY_BUTTON_ID, NAV_BUTTON_ID],
       NAV_PANEL_ID,
       HIGHLIGHT_CLASS,
     );
@@ -58,6 +62,9 @@ function mountButtons() {
   if (!document.body) return;
   if (!document.getElementById(EXPORT_BUTTON_ID)) {
     document.body.appendChild(createExportButton());
+  }
+  if (!document.getElementById(SUMMARY_BUTTON_ID)) {
+    document.body.appendChild(createSummarizeButton());
   }
   if (!document.getElementById(NAV_BUTTON_ID)) {
     document.body.appendChild(createNavigationButton());
@@ -103,6 +110,17 @@ function createNavigationButton() {
   return button;
 }
 
+function createSummarizeButton() {
+  const button = document.createElement('button');
+  button.id = SUMMARY_BUTTON_ID;
+  button.type = 'button';
+  button.textContent = 'Summarize All';
+  button.addEventListener('click', () => {
+    void handleSummarizeAll(button);
+  });
+  return button;
+}
+
 async function prepareQuestionSelection() {
   const originalScroll = window.scrollY;
   await ensureConversationLoaded(originalScroll);
@@ -125,6 +143,10 @@ async function prepareQuestionSelection() {
   openSelectionModal(qaPairs, {
     overlayId: MODAL_OVERLAY_ID,
     onConfirm: exportSelectedPairs,
+    summaryAction: {
+      label: 'Summarize Selected',
+      handler: summarizeSelectedPairs,
+    },
   });
   return true;
 }
@@ -198,4 +220,82 @@ function flashHighlight(node: HTMLElement) {
   window.setTimeout(() => {
     node.classList.remove(HIGHLIGHT_CLASS);
   }, 1400);
+}
+
+async function handleSummarizeAll(button: HTMLButtonElement) {
+  const originalText = button.textContent || 'Summarize All';
+  button.disabled = true;
+  try {
+    button.textContent = 'Summarizing...';
+    const pairs = await loadConversationPairs();
+    if (!pairs.length) return;
+    await summarizePairs(pairs, 'Full Conversation');
+    button.textContent = 'Summary Ready';
+  } catch (error) {
+    console.error('[GPT Exporter] Summarize all failed', error);
+    window.alert('Failed to generate summary. Please check provider settings or console logs.');
+    button.textContent = 'Retry Summary';
+  } finally {
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.disabled = false;
+    }, 1200);
+  }
+}
+
+async function loadConversationPairs() {
+  const originalScroll = window.scrollY;
+  await ensureConversationLoaded(originalScroll);
+  const messages = collectMessages();
+  if (!messages.length) {
+    window.alert('No messages detected. Please ensure the conversation is loaded.');
+    return [];
+  }
+  const pairs = groupMessagesIntoQA(messages);
+  if (!pairs.length) {
+    window.alert('No answered questions found. Please ensure at least one prompt has a response.');
+  }
+  return pairs;
+}
+
+async function summarizeSelectedPairs(ids: string[]) {
+  const idSet = new Set(ids);
+  const selected = qaPairsCache.filter((pair) => idSet.has(pair.id));
+  if (!selected.length) {
+    window.alert('No questions selected for summary.');
+    return;
+  }
+  await summarizePairs(
+    selected,
+    `Selected (${selected.length} question${selected.length > 1 ? 's' : ''})`,
+  );
+}
+
+async function summarizePairs(pairs: QAPair[], scopeLabel: string) {
+  if (!pairs.length) return;
+  const provider = await getActiveProvider();
+  if (!provider || !provider.baseUrl || !provider.apiKey) {
+    window.alert(
+      'No summary provider configured. Please add API credentials in provider settings.',
+    );
+    return;
+  }
+  const rawTitle = document.title || 'ChatGPT Conversation';
+  const defaultName = `${sanitizeFilename(rawTitle)}-${scopeLabel
+    .toLowerCase()
+    .replace(/\s+/g, '-')}-summary`;
+  const userFileName =
+    window.prompt(
+      'Enter summary file name (without extension). Leave blank to use default.',
+      defaultName,
+    ) || defaultName;
+  const template = await loadSummaryPromptTemplate();
+  await summarizeConversation({
+    pairs,
+    scopeLabel,
+    provider,
+    documentTitle: rawTitle,
+    fileName: userFileName,
+    promptTemplate: template,
+  });
 }

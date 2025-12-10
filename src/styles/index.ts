@@ -2,13 +2,43 @@ export function injectUIStyles(
   styleId: string,
   buttonId: string,
   overlayId: string,
-  navButtonId?: string,
+  floatingButtonIds: string[] = [],
   navPanelId?: string,
   highlightClass = 'gpt-exporter-highlight',
 ) {
   if (document.getElementById(styleId)) return;
   const style = document.createElement('style');
   style.id = styleId;
+  const floatingButtonsCss = floatingButtonIds
+    .map((id, index) => {
+      const bottom = 72 + index * 48;
+      return `
+      #${id} {
+        position: fixed;
+        right: 20px;
+        bottom: ${bottom}px;
+        z-index: 9999;
+        padding: 9px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #e5e7eb;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      }
+      #${id}:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 34px rgba(0,0,0,0.32);
+      }
+      #${id}:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }`;
+    })
+    .join('\n');
   style.textContent = `
     #${buttonId} {
       position: fixed;
@@ -128,32 +158,7 @@ export function injectUIStyles(
       opacity: 0.6;
       cursor: not-allowed;
     }
-    ${navButtonId ? `
-    #${navButtonId} {
-      position: fixed;
-      right: 20px;
-      bottom: 72px;
-      z-index: 9999;
-      padding: 9px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #e5e7eb;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-    }
-    #${navButtonId}:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 34px rgba(0,0,0,0.32);
-    }
-    #${navButtonId}:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
-    ` : ''}
+    ${floatingButtonsCss}
     ${navPanelId ? `
     #${navPanelId} {
       position: fixed;

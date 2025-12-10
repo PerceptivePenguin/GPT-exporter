@@ -4,6 +4,10 @@ export interface SelectionModalOptions {
   overlayId: string;
   onConfirm: (ids: string[]) => Promise<void>;
   onCancel?: () => void;
+  summaryAction?: {
+    label: string;
+    handler: (ids: string[]) => Promise<void>;
+  };
 }
 
 let overlayRef: HTMLDivElement | null = null;
@@ -43,6 +47,13 @@ export function openSelectionModal(pairs: QAPair[], options: SelectionModalOptio
   confirmButton.addEventListener('click', () => {
     void handleConfirm(list, confirmButton, options);
   });
+  let summarizeButton: HTMLButtonElement | null = null;
+  if (options.summaryAction) {
+    summarizeButton = createModalButton(options.summaryAction.label, true);
+    summarizeButton.addEventListener('click', () => {
+      void handleSummary(list, summarizeButton!, options.summaryAction!);
+    });
+  }
 
   const selectAllButton = createModalButton('Select All');
   selectAllButton.addEventListener('click', () => {
@@ -61,7 +72,17 @@ export function openSelectionModal(pairs: QAPair[], options: SelectionModalOptio
     closeSelectionModal('cancel');
   });
 
-  actions.append(selectAllButton, clearButton, cancelButton, confirmButton);
+  if (summarizeButton) {
+    actions.append(
+      selectAllButton,
+      clearButton,
+      cancelButton,
+      confirmButton,
+      summarizeButton,
+    );
+  } else {
+    actions.append(selectAllButton, clearButton, cancelButton, confirmButton);
+  }
   modal.appendChild(actions);
 
   list.addEventListener('change', () => updateConfirmState(list, confirmButton));
@@ -129,6 +150,32 @@ async function handleConfirm(
     setTimeout(() => {
       button.textContent = originalText;
     }, 1200);
+  }
+}
+
+async function handleSummary(
+  container: HTMLElement,
+  button: HTMLButtonElement,
+  summaryAction: { label: string; handler: (ids: string[]) => Promise<void> },
+) {
+  const selectedIds = getSelectedPairIds(container);
+  if (!selectedIds.length) {
+    window.alert('Please select at least one question before summarizing.');
+    return;
+  }
+  const originalText = button.textContent || summaryAction.label;
+  button.disabled = true;
+  button.textContent = 'Summarizing...';
+  try {
+    await summaryAction.handler(selectedIds);
+  } catch (error) {
+    console.error('[GPT Exporter] Failed to summarize selected questions', error);
+    button.textContent = 'Retry Summary';
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  } finally {
+    button.disabled = false;
   }
 }
 

@@ -1,5 +1,12 @@
-export function triggerDownload(markdown: string, title: string, exportedAt: Date) {
-  const fileName = `${buildFilePrefix(exportedAt)}-${toSlug(title)}.md`;
+export function triggerDownload(
+  markdown: string,
+  title: string,
+  exportedAt: Date,
+  overrideFileName?: string,
+) {
+  const fileName =
+    overrideFileName ||
+    `${buildFilePrefix(exportedAt)}-${toSlug(title)}.md`;
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
 
