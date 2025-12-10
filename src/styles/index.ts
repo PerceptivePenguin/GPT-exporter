@@ -247,7 +247,8 @@ export function injectUIStyles(
       flex: 1;
       font-size: 13px;
       line-height: 1.4;
-      color: #e2e8f0;
+      color: #212121 !important;
+      font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

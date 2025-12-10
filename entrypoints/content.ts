@@ -16,7 +16,6 @@ import type { QuestionEntry } from '../src/types/conversation';
 
 const EXPORT_BUTTON_ID = 'gpt-exporter-md-button';
 const NAV_BUTTON_ID = 'gpt-exporter-nav-button';
-const SUMMARY_BUTTON_ID = 'gpt-exporter-summary-button';
 const STYLE_ID = 'gpt-exporter-style';
 const MODAL_OVERLAY_ID = 'gpt-exporter-qa-overlay';
 const NAV_PANEL_ID = 'gpt-exporter-nav-panel';
@@ -36,7 +35,7 @@ export default defineContentScript({
       STYLE_ID,
       EXPORT_BUTTON_ID,
       MODAL_OVERLAY_ID,
-      [SUMMARY_BUTTON_ID, NAV_BUTTON_ID],
+      [NAV_BUTTON_ID],
       NAV_PANEL_ID,
       HIGHLIGHT_CLASS,
     );
@@ -63,9 +62,6 @@ function mountButtons() {
   if (!document.getElementById(EXPORT_BUTTON_ID)) {
     document.body.appendChild(createExportButton());
   }
-  if (!document.getElementById(SUMMARY_BUTTON_ID)) {
-    document.body.appendChild(createSummarizeButton());
-  }
   if (!document.getElementById(NAV_BUTTON_ID)) {
     document.body.appendChild(createNavigationButton());
   }
@@ -75,9 +71,9 @@ function createExportButton() {
   const button = document.createElement('button');
   button.id = EXPORT_BUTTON_ID;
   button.type = 'button';
-  button.textContent = 'Export MD';
+  button.textContent = '导出为MD';
   button.addEventListener('click', async () => {
-    const originalLabel = 'Export MD';
+    const originalLabel = '导出为MD';
     button.disabled = true;
     try {
       button.textContent = 'Preparing...';
@@ -106,17 +102,6 @@ function createNavigationButton() {
       panelId: NAV_PANEL_ID,
       onEntryClick: handleNavigationClick,
     });
-  });
-  return button;
-}
-
-function createSummarizeButton() {
-  const button = document.createElement('button');
-  button.id = SUMMARY_BUTTON_ID;
-  button.type = 'button';
-  button.textContent = 'Summarize All';
-  button.addEventListener('click', () => {
-    void handleSummarizeAll(button);
   });
   return button;
 }
