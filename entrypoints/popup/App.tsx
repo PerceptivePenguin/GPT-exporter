@@ -114,12 +114,13 @@ export default function App() {
   }
 
   return (
-    <div className="settings-popup">
-      <div className="settings-header">
-        <h1>GPT Exporter Settings</h1>
-        <div className="panel-switch" role="tablist" aria-label="Settings tabs">
-          <button
-            type="button"
+    <div className="settings-shell">
+      <div className="settings-popup">
+        <div className="settings-header">
+          <h1>GPT Exporter Settings</h1>
+          <div className="panel-switch" role="tablist" aria-label="Settings tabs">
+            <button
+              type="button"
             className={activePanel === 'providers' ? 'active' : ''}
             onClick={() => setActivePanel('providers')}
             title="Providers"
@@ -139,120 +140,121 @@ export default function App() {
         </div>
       </div>
 
-      {activePanel === 'providers' && (
-        <section className="panel">
-          <header>
-            <div>
-              <h2>Providers</h2>
-              <p className="subtitle">
-                Configure base URL、API Key、默认模型，并设置当前使用的服务商。
-              </p>
-            </div>
-          </header>
-          <div className="provider-layout">
-            <div className="provider-list">
-              {providerList.map((provider) => (
-                <button
-                  key={provider.id}
-                  className={`provider-item ${
-                    provider.id === selectedProviderId ? 'active' : ''
-                  }`}
-                  onClick={() => setSelectedProviderId(provider.id)}
-                >
-                  <span>{provider.name}</span>
-                  {registry?.activeProviderId === provider.id && (
-                    <span className="badge">Active</span>
-                  )}
-                </button>
-              ))}
-            </div>
-            {currentProvider ? (
-              <div className="provider-form">
-                <label>
-                  Base URL
-                  <input
-                    type="text"
-                    value={formState.baseUrl}
-                    onChange={(event) =>
-                      updateForm('baseUrl', event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  API Key
-                  <input
-                    type="password"
-                    value={formState.apiKey}
-                    onChange={(event) =>
-                      updateForm('apiKey', event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Default Model
-                  <input
-                    type="text"
-                    value={formState.defaultModel}
-                    onChange={(event) =>
-                      updateForm('defaultModel', event.target.value)
-                    }
-                  />
-                </label>
-                <div className="actions">
-                  <button
-                    className="secondary"
-                    onClick={() => handleSetActive(currentProvider.id)}
-                    disabled={activeSaving}
-                  >
-                    {activeSaving ? 'Setting...' : 'Set Active'}
-                  </button>
-                  <button
-                    className="primary"
-                    onClick={handleSaveProvider}
-                    disabled={saving}
-                  >
-                    {saving ? 'Saving...' : 'Save Provider'}
-                  </button>
-                </div>
+        {activePanel === 'providers' && (
+          <section className="panel">
+            <header>
+              <div>
+                <h2>Providers</h2>
+                <p className="subtitle">
+                  Configure base URL、API Key、默认模型，并设置当前使用的服务商。
+                </p>
               </div>
-            ) : (
-              <div className="provider-form empty">请选择左侧服务商</div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {activePanel === 'prompt' && (
-        <section className="panel">
-          <header>
-            <div>
-              <h2>Summary Prompt</h2>
-              <p className="subtitle">
-                自定义总结输出结构，可使用{' '}
-                <code>{'{{scope}}'}</code> 和{' '}
-                <code>{'{{conversation}}'}</code> 变量。
-              </p>
+            </header>
+            <div className="provider-layout">
+              <div className="provider-list">
+                {providerList.map((provider) => (
+                  <button
+                    key={provider.id}
+                    className={`provider-item ${
+                      provider.id === selectedProviderId ? 'active' : ''
+                    }`}
+                    onClick={() => setSelectedProviderId(provider.id)}
+                  >
+                    <span>{provider.name}</span>
+                    {registry?.activeProviderId === provider.id && (
+                      <span className="badge">Active</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {currentProvider ? (
+                <div className="provider-form">
+                  <label>
+                    Base URL
+                    <input
+                      type="text"
+                      value={formState.baseUrl}
+                      onChange={(event) =>
+                        updateForm('baseUrl', event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    API Key
+                    <input
+                      type="password"
+                      value={formState.apiKey}
+                      onChange={(event) =>
+                        updateForm('apiKey', event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Default Model
+                    <input
+                      type="text"
+                      value={formState.defaultModel}
+                      onChange={(event) =>
+                        updateForm('defaultModel', event.target.value)
+                      }
+                    />
+                  </label>
+                  <div className="actions">
+                    <button
+                      className="secondary"
+                      onClick={() => handleSetActive(currentProvider.id)}
+                      disabled={activeSaving}
+                    >
+                      {activeSaving ? 'Setting...' : 'Set Active'}
+                    </button>
+                    <button
+                      className="primary"
+                      onClick={handleSaveProvider}
+                      disabled={saving}
+                    >
+                      {saving ? 'Saving...' : 'Save Provider'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="provider-form empty">请选择左侧服务商</div>
+              )}
             </div>
-          </header>
-          <textarea
-            value={promptTemplate}
-            onChange={(event) => setPromptTemplate(event.target.value)}
-            rows={10}
-          />
-          <div className="actions">
-            <button className="secondary" onClick={handlePromptReset}>
-              Reset Default
-            </button>
-            <button
-              className="primary"
-              onClick={handlePromptSave}
-              disabled={promptSaving}
-            >
-              {promptSaving ? 'Saving...' : 'Save Prompt'}
-            </button>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+
+        {activePanel === 'prompt' && (
+          <section className="panel">
+            <header>
+              <div>
+                <h2>Summary Prompt</h2>
+                <p className="subtitle">
+                  自定义总结输出结构，可使用{' '}
+                  <code>{'{{scope}}'}</code> 和{' '}
+                  <code>{'{{conversation}}'}</code> 变量。
+                </p>
+              </div>
+            </header>
+            <textarea
+              value={promptTemplate}
+              onChange={(event) => setPromptTemplate(event.target.value)}
+              rows={10}
+            />
+            <div className="actions">
+              <button className="secondary" onClick={handlePromptReset}>
+                Reset Default
+              </button>
+              <button
+                className="primary"
+                onClick={handlePromptSave}
+                disabled={promptSaving}
+              >
+                {promptSaving ? 'Saving...' : 'Save Prompt'}
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

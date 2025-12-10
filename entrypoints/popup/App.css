@@ -12,19 +12,28 @@ body {
 
 #root {
   width: 360px;
-  padding: 1rem;
-  background: #0f172a;
+  padding: 0;
+  border-radius: 18px;
+  background: #0c1220;
   color: #f8fafc;
   font-family: 'Inter', sans-serif;
+  box-shadow: 0 18px 55px rgba(2, 6, 23, 0.55);
+  overflow: hidden;
+}
 
-  box-sizing: border-box;
-  overflow-x: hidden;
+.settings-shell {
+  padding: 1.1rem 1.2rem 1.3rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-popup {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .settings-header {
@@ -73,23 +82,25 @@ body {
 }
 
 .panel {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  padding: 0.9rem;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+  padding: 1.1rem;
   margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-
-  height: 360px;
-  overflow-y: hidden;
+  min-height: 360px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .panel h2 {
@@ -107,13 +118,19 @@ body {
 .provider-layout {
   display: flex;
   gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .provider-list {
-  width: 40%;
+  flex: 0 0 38%;
+  max-width: 40%;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  min-height: 0;
+  overflow: auto;
 }
 
 .provider-item {
@@ -147,6 +164,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
+  overflow: auto;
 }
 
 .provider-form label {
@@ -177,6 +196,7 @@ textarea {
   justify-content: flex-end;
   gap: 0.4rem;
   margin-top: 0.3rem;
+  flex-shrink: 0;
 }
 
 .actions button {
@@ -208,4 +228,12 @@ textarea {
 textarea {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   resize: vertical;
+}
+
+.panel textarea {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  resize: none;
 }
