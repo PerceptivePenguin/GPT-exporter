@@ -39,6 +39,7 @@
   "retrySummary": { "message": "重试总结" },
   "noSummaryProvider": { "message": "未配置总结服务，请在服务商设置中添加 API 凭证。" },
   "summaryFilePrompt": { "message": "输入总结文件名（不含扩展名），留空则使用默认值。" },
+  "exportFilePrompt": { "message": "输入导出文件名（不含扩展名），留空则使用默认值。" },
   "modalTitle": { "message": "选择问题" },
   "modalSubtitle": { "message": "选择要包含的提问，仅已收到回答的问题会显示。" },
   "exportSelected": { "message": "导出所选" },

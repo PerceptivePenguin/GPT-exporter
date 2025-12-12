@@ -31,7 +31,7 @@ const DEFAULT_REGISTRY: ProviderRegistry = {
     },
     {
       id: 'custom',
-      name: 'Custom Provider',
+      name: 'Custom',
       baseUrl: '',
       apiKey: '',
       defaultModel: '',

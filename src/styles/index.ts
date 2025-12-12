@@ -24,7 +24,7 @@ export function injectUIStyles(
         text-align: center;
         border-radius: 12px;
         border: 2px solid #212121;
-        background: #fff;
+        background: #ffd900;
         color: #212121;
         font-size: 13px;
         font-weight: 700;

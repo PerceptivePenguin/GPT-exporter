@@ -189,7 +189,9 @@ export default function App() {
                     }`}
                     onClick={() => setSelectedProviderId(provider.id)}
                   >
-                    <span>{provider.name}</span>
+                    <span>
+                      {provider.id === 'custom' ? 'Custom' : provider.name}
+                    </span>
                   </button>
                 ))}
               </div>

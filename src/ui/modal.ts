@@ -174,6 +174,14 @@ async function handleConfirm(
     await options.onConfirm(selectedIds);
     closeSelectionModal('confirm');
   } catch (error) {
+    const isCancelled =
+      error instanceof Error && error.message === 'EXPORT_CANCELLED';
+    if (isCancelled) {
+      button.textContent = originalText;
+      button.disabled = false;
+      return;
+    }
+
     console.error('[GPT Exporter] Failed to export selected questions', error);
     button.textContent = t('retryExport');
     button.disabled = false;

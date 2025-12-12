@@ -1,8 +1,8 @@
 {
-  "name": "wxt-react-starter",
+  "name": "Gpt Exporter",
   "description": "manifest.json description",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",

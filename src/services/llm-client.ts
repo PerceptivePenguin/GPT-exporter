@@ -38,6 +38,8 @@ async function callProvider(provider: ProviderConfig, prompt: string) {
       return callAnthropic(provider, prompt);
     case 'gemini':
       return callGemini(provider, prompt);
+    case 'custom':
+      return callCustom(provider, prompt);
     default:
       return callCustom(provider, prompt);
   }
@@ -177,11 +179,6 @@ async function callCustom(provider: ProviderConfig, prompt: string) {
     return extractResultText(payload);
   };
 
-  const promptBody = {
-    model: provider.defaultModel,
-    prompt,
-  };
-
   const chatBody = {
     model: provider.defaultModel,
     messages: [
@@ -191,27 +188,5 @@ async function callCustom(provider: ProviderConfig, prompt: string) {
     temperature: 0.3,
   };
 
-  const shouldTryChatFirst = /chat\/completions/i.test(url);
-
-  if (shouldTryChatFirst) {
-    try {
-      return await request(chatBody);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (/prompt\s+is\s+required|unknown\s+field\s+messages|messages?.*required/i.test(message)) {
-        return await request(promptBody);
-      }
-      throw error;
-    }
-  }
-
-  try {
-    return await request(promptBody);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (/messages?.*required/i.test(message)) {
-      return await request(chatBody);
-    }
-    throw error;
-  }
+  return await request(chatBody);
 }

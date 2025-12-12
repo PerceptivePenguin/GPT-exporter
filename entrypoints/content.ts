@@ -1,5 +1,10 @@
 import { collectMessages, collectUserQuestions } from '../src/dom/message-parser';
-import { triggerDownload, sanitizeFilename } from '../src/export/download';
+import {
+  triggerDownload,
+  sanitizeFilename,
+  buildFilePrefix,
+  toSlug,
+} from '../src/export/download';
 import { buildQADocument } from '../src/export/markdown';
 import { groupMessagesIntoQA } from '../src/qa/grouping';
 import { injectUIStyles } from '../src/styles';
@@ -188,9 +193,20 @@ async function exportSelectedPairs(ids: string[]) {
     throw new Error('Selection is empty after filtering.');
   }
   const exportedAt = new Date();
-  const title = sanitizeFilename(document.title || 'ChatGPT Conversation');
+  const rawTitle = document.title || 'ChatGPT Conversation';
+  const title = sanitizeFilename(rawTitle);
+  const defaultFileName = `${buildFilePrefix(exportedAt)}-${toSlug(title)}`;
+  const userFileName = window.prompt(t('exportFilePrompt'), defaultFileName);
+  if (userFileName === null) {
+    throw new Error('EXPORT_CANCELLED');
+  }
+  const baseName = userFileName.trim() || defaultFileName;
+  const withExtension = baseName.toLowerCase().endsWith('.md')
+    ? baseName
+    : `${baseName}.md`;
+  const sanitizedFileName = sanitizeFilename(withExtension);
   const markdown = buildQADocument(title, selected, exportedAt);
-  triggerDownload(markdown, title, exportedAt);
+  triggerDownload(markdown, title, exportedAt, sanitizedFileName);
 }
 
 function startQuestionIndexWatcher() {
