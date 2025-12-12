@@ -20,7 +20,14 @@ export function groupMessagesIntoQA(messages: ExportMessage[]): QAPair[] {
     const meaningfulAnswers = currentAnswers.filter((answer) =>
       isMeaningfulAnswer(answer.content),
     );
-    if (!meaningfulAnswers.length) {
+    const lastAssistant = [...meaningfulAnswers]
+      .reverse()
+      .find((answer) => answer.role === 'assistant');
+    const finalAnswers = lastAssistant
+      ? [lastAssistant]
+      : meaningfulAnswers.slice(-1);
+
+    if (!finalAnswers.length) {
       currentQuestion = null;
       currentAnswers = [];
       return;
@@ -30,7 +37,7 @@ export function groupMessagesIntoQA(messages: ExportMessage[]): QAPair[] {
     pairs.push({
       id: `qa-${counter}`,
       question,
-      answers: meaningfulAnswers,
+      answers: finalAnswers,
       summary: summarizeQuestion(question.content),
     });
     currentQuestion = null;

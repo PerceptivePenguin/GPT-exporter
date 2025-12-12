@@ -127,22 +127,91 @@ async function callCustom(provider: ProviderConfig, prompt: string) {
   if (provider.apiKey) {
     headers.Authorization = `Bearer ${provider.apiKey}`;
   }
-  const response = await fetch(provider.baseUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: provider.defaultModel,
-      prompt,
-    }),
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error || 'Custom provider request failed');
+
+  const url = provider.baseUrl.trim();
+
+  const normalizeErrorMessage = (payload: any) => {
+    const rawError = payload?.error;
+    const message =
+      typeof rawError === 'string'
+        ? rawError
+        : rawError?.message
+          ? String(rawError.message)
+          : rawError
+            ? JSON.stringify(rawError)
+            : JSON.stringify(payload);
+    return message || 'Custom provider request failed';
+  };
+
+  const extractResultText = (payload: any) => {
+    const text =
+      payload?.summary ||
+      payload?.content ||
+      payload?.result ||
+      payload?.choices?.[0]?.message?.content ||
+      payload?.choices?.[0]?.text ||
+      payload?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      JSON.stringify(payload);
+    return typeof text === 'string' ? text.trim() : String(text);
+  };
+
+  const request = async (body: Record<string, any>) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    let payload: any = null;
+    try {
+      payload = await response.json();
+    } catch {
+      const fallbackText = await response.text().catch(() => '');
+      payload = { error: fallbackText };
+    }
+
+    if (!response.ok) {
+      throw new Error(normalizeErrorMessage(payload));
+    }
+
+    return extractResultText(payload);
+  };
+
+  const promptBody = {
+    model: provider.defaultModel,
+    prompt,
+  };
+
+  const chatBody = {
+    model: provider.defaultModel,
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.3,
+  };
+
+  const shouldTryChatFirst = /chat\/completions/i.test(url);
+
+  if (shouldTryChatFirst) {
+    try {
+      return await request(chatBody);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/prompt\s+is\s+required|unknown\s+field\s+messages|messages?.*required/i.test(message)) {
+        return await request(promptBody);
+      }
+      throw error;
+    }
   }
-  return (
-    payload?.summary ||
-    payload?.content ||
-    payload?.result ||
-    JSON.stringify(payload)
-  );
+
+  try {
+    return await request(promptBody);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/messages?.*required/i.test(message)) {
+      return await request(chatBody);
+    }
+    throw error;
+  }
 }

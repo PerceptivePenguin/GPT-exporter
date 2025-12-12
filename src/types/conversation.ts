@@ -1,6 +1,7 @@
 export type ChatRole = 'assistant' | 'user' | 'system' | 'tool' | 'unknown';
 
 export interface ExportMessage {
+  id: string;
   role: ChatRole;
   content: string;
 }

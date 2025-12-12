@@ -9,19 +9,36 @@ export function collectMessages(): ExportMessage[] {
   const nodes = Array.from(
     document.querySelectorAll<HTMLElement>(MESSAGE_SELECTOR),
   );
-  const unique: HTMLElement[] = [];
-  const seen = new Set<HTMLElement>();
+  const uniqueRoots: HTMLElement[] = [];
+  const seenRoots = new Set<HTMLElement>();
 
   for (const node of nodes) {
-    if (!seen.has(node)) {
-      seen.add(node);
-      unique.push(node);
+    const root = resolveMessageRoot(node) || node;
+    if (!seenRoots.has(root)) {
+      seenRoots.add(root);
+      uniqueRoots.push(root);
     }
   }
 
-  return unique
+  const serialized = uniqueRoots
     .map((node) => serializeMessage(node))
     .filter((item): item is ExportMessage => Boolean(item));
+
+  const deduped: ExportMessage[] = [];
+  const indexByKey = new Map<string, number>();
+
+  for (const message of serialized) {
+    const key = `${message.id}::${message.role}`;
+    const existing = indexByKey.get(key);
+    if (existing === undefined) {
+      indexByKey.set(key, deduped.length);
+      deduped.push(message);
+      continue;
+    }
+    deduped[existing] = message;
+  }
+
+  return deduped;
 }
 
 export function collectUserQuestions(): QuestionEntry[] {
@@ -59,11 +76,13 @@ export function collectUserQuestions(): QuestionEntry[] {
 }
 
 function serializeMessage(node: HTMLElement): ExportMessage | null {
-  const role = detectRole(node);
-  const markdown = buildMarkdown(node, role);
+  const root = resolveMessageRoot(node) || node;
+  const role = detectRole(root);
+  const markdown = buildMarkdown(root, role);
   const trimmed = markdown.trimEnd();
+  const id = getMessageKey(root, trimmed);
 
-  return { role, content: trimmed };
+  return { id, role, content: trimmed };
 }
 
 function detectRole(node: HTMLElement): ChatRole {
