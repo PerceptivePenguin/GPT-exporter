@@ -42,6 +42,8 @@
   "modalTitle": { "message": "选择问题" },
   "modalSubtitle": { "message": "选择要包含的提问，仅已收到回答的问题会显示。" },
   "exportSelected": { "message": "导出所选" },
+  "exporting": { "message": "导出中..." },
+  "retryExport": { "message": "重试导出" },
   "selectAll": { "message": "全选" },
   "clear": { "message": "清空" },
   "cancel": { "message": "取消" },

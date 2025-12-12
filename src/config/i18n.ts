@@ -10,8 +10,9 @@ export const DEFAULT_LOCALE: Locale = 'zh';
 let cachedLocale: Locale = DEFAULT_LOCALE;
 
 function getStorage() {
-  if (typeof browser !== 'undefined' && browser?.storage) return browser.storage;
-  if (typeof chrome !== 'undefined' && chrome?.storage) return chrome.storage;
+  const globalAny = globalThis as any;
+  if (globalAny.browser?.storage) return globalAny.browser.storage;
+  if (globalAny.chrome?.storage) return globalAny.chrome.storage;
   return null;
 }
 

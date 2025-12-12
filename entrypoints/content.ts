@@ -3,7 +3,7 @@ import { triggerDownload, sanitizeFilename } from '../src/export/download';
 import { buildQADocument } from '../src/export/markdown';
 import { groupMessagesIntoQA } from '../src/qa/grouping';
 import { injectUIStyles } from '../src/styles';
-import { openSelectionModal } from '../src/ui/modal';
+import { openSelectionModal, updateSelectionModalLocale } from '../src/ui/modal';
 import {
   toggleNavigationPanel,
   updateNavigationPanel,
@@ -11,6 +11,13 @@ import {
 import { getActiveProvider } from '../src/config/provider-registry';
 import { loadSummaryPromptTemplate } from '../src/config/summary-prompt';
 import { summarizeConversation } from '../src/services/llm-client';
+import {
+  LOCALE_KEY,
+  loadLocale,
+  resolveLocale,
+  setLocaleCache,
+  t,
+} from '../src/config/i18n';
 import type { QAPair } from '../src/types/conversation';
 import type { QuestionEntry } from '../src/types/conversation';
 
@@ -31,6 +38,8 @@ export default defineContentScript({
   matches: ['*://chat.openai.com/*', '*://chatgpt.com/*'],
   runAt: 'document_end',
   main() {
+    void bootstrapLocale();
+    listenLocaleChanges();
     injectUIStyles(
       STYLE_ID,
       EXPORT_BUTTON_ID,
@@ -44,6 +53,42 @@ export default defineContentScript({
     startQuestionIndexWatcher();
   },
 });
+
+async function bootstrapLocale() {
+  const loaded = await loadLocale();
+  setLocaleCache(loaded);
+  refreshInjectedUIText();
+}
+
+function listenLocaleChanges() {
+  const globalAny = globalThis as any;
+  const storage = globalAny.browser?.storage ?? globalAny.chrome?.storage;
+  storage?.onChanged?.addListener(
+    (changes: Record<string, { newValue?: unknown }>, area: string) => {
+      if (area !== 'sync' && area !== 'local') return;
+      const change = changes?.[LOCALE_KEY];
+      if (!change) return;
+      const next = resolveLocale(change.newValue as string | null | undefined);
+      setLocaleCache(next);
+      refreshInjectedUIText();
+    },
+  );
+}
+
+function refreshInjectedUIText() {
+  const exportButton = document.getElementById(EXPORT_BUTTON_ID) as
+    | HTMLButtonElement
+    | null;
+  if (exportButton && !exportButton.disabled) {
+    exportButton.textContent = t('exportButton');
+  }
+  const navButton = document.getElementById(NAV_BUTTON_ID) as HTMLButtonElement | null;
+  if (navButton) {
+    navButton.textContent = t('navButton');
+  }
+  updateNavigationPanel(questionEntries);
+  updateSelectionModalLocale();
+}
 
 function keepButtonAlive() {
   const observer = new MutationObserver(() => {
@@ -71,17 +116,17 @@ function createExportButton() {
   const button = document.createElement('button');
   button.id = EXPORT_BUTTON_ID;
   button.type = 'button';
-  button.textContent = '导出为MD';
+  button.textContent = t('exportButton');
   button.addEventListener('click', async () => {
-    const originalLabel = '导出为MD';
+    const originalLabel = t('exportButton');
     button.disabled = true;
     try {
-      button.textContent = 'Preparing...';
+      button.textContent = t('preparing');
       const success = await prepareQuestionSelection();
-      button.textContent = success ? 'Choose Q&A' : 'No Answers';
+      button.textContent = success ? t('chooseQA') : t('noAnswers');
     } catch (error) {
       console.error('[GPT Exporter] Failed to prepare selection', error);
-      button.textContent = 'Retry Setup';
+      button.textContent = t('retrySetup');
     } finally {
       setTimeout(() => {
         button.textContent = originalLabel;
@@ -96,7 +141,7 @@ function createNavigationButton() {
   const button = document.createElement('button');
   button.id = NAV_BUTTON_ID;
   button.type = 'button';
-  button.textContent = '问题导航';
+  button.textContent = t('navButton');
   button.addEventListener('click', () => {
     toggleNavigationPanel(questionEntries, {
       panelId: NAV_PANEL_ID,
@@ -113,14 +158,14 @@ async function prepareQuestionSelection() {
   const messages = collectMessages();
   if (messages.length === 0) {
     console.warn('[GPT Exporter] No messages found on this page.');
-    window.alert('No messages detected. Please ensure the conversation is loaded.');
+    window.alert(t('noMessagesAlert'));
     return false;
   }
 
   const qaPairs = groupMessagesIntoQA(messages);
   if (!qaPairs.length) {
     console.warn('[GPT Exporter] No answered questions found.');
-    window.alert('No answered questions found. Please ensure at least one prompt has a response.');
+    window.alert(t('noAnsweredAlert'));
     return false;
   }
 
@@ -129,7 +174,7 @@ async function prepareQuestionSelection() {
     overlayId: MODAL_OVERLAY_ID,
     onConfirm: exportSelectedPairs,
     summaryAction: {
-      label: 'Summarize Selected',
+      key: 'summarizeSelected',
       handler: summarizeSelectedPairs,
     },
   });
@@ -211,15 +256,15 @@ async function handleSummarizeAll(button: HTMLButtonElement) {
   const originalText = button.textContent || 'Summarize All';
   button.disabled = true;
   try {
-    button.textContent = 'Summarizing...';
+    button.textContent = t('summarizing');
     const pairs = await loadConversationPairs();
     if (!pairs.length) return;
     await summarizePairs(pairs, 'Full Conversation');
-    button.textContent = 'Summary Ready';
+    button.textContent = t('summaryReady');
   } catch (error) {
     console.error('[GPT Exporter] Summarize all failed', error);
     window.alert('Failed to generate summary. Please check provider settings or console logs.');
-    button.textContent = 'Retry Summary';
+    button.textContent = t('retrySummary');
   } finally {
     setTimeout(() => {
       button.textContent = originalText;
@@ -233,12 +278,12 @@ async function loadConversationPairs() {
   await ensureConversationLoaded(originalScroll);
   const messages = collectMessages();
   if (!messages.length) {
-    window.alert('No messages detected. Please ensure the conversation is loaded.');
+    window.alert(t('noMessagesAlert'));
     return [];
   }
   const pairs = groupMessagesIntoQA(messages);
   if (!pairs.length) {
-    window.alert('No answered questions found. Please ensure at least one prompt has a response.');
+    window.alert(t('noAnsweredAlert'));
   }
   return pairs;
 }
@@ -247,7 +292,7 @@ async function summarizeSelectedPairs(ids: string[]) {
   const idSet = new Set(ids);
   const selected = qaPairsCache.filter((pair) => idSet.has(pair.id));
   if (!selected.length) {
-    window.alert('No questions selected for summary.');
+    window.alert(t('summarySelectionEmpty'));
     return;
   }
   await summarizePairs(
@@ -260,9 +305,7 @@ async function summarizePairs(pairs: QAPair[], scopeLabel: string) {
   if (!pairs.length) return;
   const provider = await getActiveProvider();
   if (!provider || !provider.baseUrl || !provider.apiKey) {
-    window.alert(
-      'No summary provider configured. Please add API credentials in provider settings.',
-    );
+    window.alert(t('noSummaryProvider'));
     return;
   }
   const rawTitle = document.title || 'ChatGPT Conversation';
@@ -271,7 +314,7 @@ async function summarizePairs(pairs: QAPair[], scopeLabel: string) {
     .replace(/\s+/g, '-')}-summary`;
   const userFileName =
     window.prompt(
-      'Enter summary file name (without extension). Leave blank to use default.',
+      t('summaryFilePrompt'),
       defaultName,
     ) || defaultName;
   const template = await loadSummaryPromptTemplate();

@@ -1,0 +1,55 @@
+.lang-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lang-toggle-face {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--card);
+  border: var(--stroke);
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.18s ease, background 0.18s ease;
+  overflow: hidden;
+}
+
+.lang-toggle-face:hover {
+  background: #ffeeb2;
+}
+
+.lang-toggle-face:active {
+  transform: scale(0.94);
+}
+
+.lang-face {
+  position: absolute;
+  font-weight: 800;
+  color: var(--ink);
+  transition: opacity 0.22s ease;
+  font-size: 0.95rem;
+}
+
+.lang-face.en {
+  opacity: 0;
+}
+
+.lang-toggle input:checked + .lang-toggle-face .lang-face.zh {
+  opacity: 0;
+}
+
+.lang-toggle input:checked + .lang-toggle-face .lang-face.en {
+  opacity: 1;
+}

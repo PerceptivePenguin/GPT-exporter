@@ -42,6 +42,8 @@
   "modalTitle": { "message": "Select Questions" },
   "modalSubtitle": { "message": "Choose the prompts you want to include. Only questions with responses appear here." },
   "exportSelected": { "message": "Export Selected" },
+  "exporting": { "message": "Exporting..." },
+  "retryExport": { "message": "Retry Export" },
   "selectAll": { "message": "Select All" },
   "clear": { "message": "Clear" },
   "cancel": { "message": "Cancel" },

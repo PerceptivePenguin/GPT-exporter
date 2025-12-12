@@ -102,7 +102,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  min-height: 360px;
+  height: 360px;
   flex: 1;
   min-width: 0;
   overflow: hidden;

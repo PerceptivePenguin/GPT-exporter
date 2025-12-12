@@ -1,3 +1,4 @@
+import { t } from '../config/i18n';
 import type { QuestionEntry } from '../types/conversation';
 
 export interface NavigationOptions {
@@ -20,6 +21,14 @@ export function toggleNavigationPanel(entries: QuestionEntry[], options: Navigat
 export function updateNavigationPanel(entries: QuestionEntry[]) {
   cachedEntries = entries;
   if (!panelRef || !cachedOptions) return;
+  const title = panelRef.querySelector<HTMLElement>('.gpt-exporter-nav-header span');
+  if (title) {
+    title.textContent = t('navTitle');
+  }
+  const empty = panelRef.querySelector<HTMLElement>('.gpt-exporter-nav-empty');
+  if (empty) {
+    empty.textContent = t('navEmpty');
+  }
   renderList(panelRef, entries, cachedOptions);
 }
 
@@ -41,7 +50,7 @@ function renderPanel(entries: QuestionEntry[], options: NavigationOptions) {
   const header = document.createElement('div');
   header.className = 'gpt-exporter-nav-header';
   const title = document.createElement('span');
-  title.textContent = '问题导航';
+  title.textContent = t('navTitle');
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'gpt-exporter-nav-close';
@@ -56,7 +65,7 @@ function renderPanel(entries: QuestionEntry[], options: NavigationOptions) {
 
   const empty = document.createElement('div');
   empty.className = 'gpt-exporter-nav-empty';
-  empty.textContent = '暂无可导航的问题';
+  empty.textContent = t('navEmpty');
   panel.appendChild(empty);
 
   cachedOptions = options;

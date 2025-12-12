@@ -1,3 +1,4 @@
+import { t } from '../config/i18n';
 import type { QAPair } from '../types/conversation';
 
 export interface SelectionModalOptions {
@@ -5,7 +6,8 @@ export interface SelectionModalOptions {
   onConfirm: (ids: string[]) => Promise<void>;
   onCancel?: () => void;
   summaryAction?: {
-    label: string;
+    label?: string;
+    key?: Parameters<typeof t>[0];
     handler: (ids: string[]) => Promise<void>;
   };
 }
@@ -16,6 +18,7 @@ let activeOptions: SelectionModalOptions | null = null;
 
 export function openSelectionModal(pairs: QAPair[], options: SelectionModalOptions) {
   closeSelectionModal();
+  const tr = (key: Parameters<typeof t>[0]) => t(key);
 
   const overlay = document.createElement('div');
   overlay.id = options.overlayId;
@@ -28,10 +31,9 @@ export function openSelectionModal(pairs: QAPair[], options: SelectionModalOptio
   const header = document.createElement('div');
   header.className = 'gpt-exporter-modal-header';
   const title = document.createElement('h2');
-  title.textContent = 'Select Questions';
+  title.textContent = tr('modalTitle');
   const subtitle = document.createElement('p');
-  subtitle.textContent =
-    'Choose the prompts you want to include. Only questions with responses appear here.';
+  subtitle.textContent = tr('modalSubtitle');
   header.append(title, subtitle);
   modal.appendChild(header);
 
@@ -43,31 +45,34 @@ export function openSelectionModal(pairs: QAPair[], options: SelectionModalOptio
   const actions = document.createElement('div');
   actions.className = 'gpt-exporter-modal-actions';
 
-  const confirmButton = createModalButton('Export Selected', true);
+  const confirmButton = createModalButton(tr('exportSelected'), true, 'exportSelected');
   confirmButton.addEventListener('click', () => {
     void handleConfirm(list, confirmButton, options);
   });
   let summarizeButton: HTMLButtonElement | null = null;
   if (options.summaryAction) {
-    summarizeButton = createModalButton(options.summaryAction.label, true);
+    const summaryKey = options.summaryAction.key;
+    const summaryLabel =
+      summaryKey ? tr(summaryKey) : options.summaryAction.label || tr('summarizeSelected');
+    summarizeButton = createModalButton(summaryLabel, true, summaryKey);
     summarizeButton.addEventListener('click', () => {
       void handleSummary(list, summarizeButton!, options.summaryAction!);
     });
   }
 
-  const selectAllButton = createModalButton('Select All');
+  const selectAllButton = createModalButton(tr('selectAll'), false, 'selectAll');
   selectAllButton.addEventListener('click', () => {
     setAllCheckboxes(list, true);
     updateConfirmState(list, confirmButton);
   });
 
-  const clearButton = createModalButton('Clear');
+  const clearButton = createModalButton(tr('clear'), false, 'clear');
   clearButton.addEventListener('click', () => {
     setAllCheckboxes(list, false);
     updateConfirmState(list, confirmButton);
   });
 
-  const cancelButton = createModalButton('Cancel');
+  const cancelButton = createModalButton(tr('cancel'), false, 'cancel');
   cancelButton.addEventListener('click', () => {
     closeSelectionModal('cancel');
   });
@@ -125,6 +130,31 @@ export function closeSelectionModal(reason: 'confirm' | 'cancel' = 'cancel') {
   activeOptions = null;
 }
 
+export function updateSelectionModalLocale() {
+  if (!overlayRef) return;
+  const title = overlayRef.querySelector<HTMLHeadingElement>(
+    '.gpt-exporter-modal-header h2',
+  );
+  if (title) title.textContent = t('modalTitle');
+  const subtitle = overlayRef.querySelector<HTMLParagraphElement>(
+    '.gpt-exporter-modal-header p',
+  );
+  if (subtitle) subtitle.textContent = t('modalSubtitle');
+  overlayRef
+    .querySelectorAll<HTMLButtonElement>('button[data-i18n-key]')
+    .forEach((button) => {
+      const key = button.dataset.i18nKey as Parameters<typeof t>[0] | undefined;
+      if (key) button.textContent = t(key);
+    });
+  overlayRef
+    .querySelectorAll<HTMLDivElement>('.gpt-exporter-qa-meta')
+    .forEach((meta) => {
+      const count = Number(meta.dataset.answerCount || '0');
+      const labelKey = count > 1 ? 'answersLabel' : 'answerLabel';
+      meta.textContent = `${count} ${t(labelKey)}`;
+    });
+}
+
 async function handleConfirm(
   container: HTMLElement,
   button: HTMLButtonElement,
@@ -132,20 +162,20 @@ async function handleConfirm(
 ) {
   const selectedIds = getSelectedPairIds(container);
   if (!selectedIds.length) {
-    window.alert('Please select at least one question before exporting.');
+    window.alert(t('selectionEmptyAlert'));
     return;
   }
 
-  const originalText = button.textContent || 'Export Selected';
+  const originalText = button.textContent || t('exportSelected');
   button.disabled = true;
-  button.textContent = 'Exporting...';
+  button.textContent = t('exporting');
 
   try {
     await options.onConfirm(selectedIds);
     closeSelectionModal('confirm');
   } catch (error) {
     console.error('[GPT Exporter] Failed to export selected questions', error);
-    button.textContent = 'Retry Export';
+    button.textContent = t('retryExport');
     button.disabled = false;
     setTimeout(() => {
       button.textContent = originalText;
@@ -156,21 +186,28 @@ async function handleConfirm(
 async function handleSummary(
   container: HTMLElement,
   button: HTMLButtonElement,
-  summaryAction: { label: string; handler: (ids: string[]) => Promise<void> },
+  summaryAction: {
+    label?: string;
+    key?: Parameters<typeof t>[0];
+    handler: (ids: string[]) => Promise<void>;
+  },
 ) {
   const selectedIds = getSelectedPairIds(container);
   if (!selectedIds.length) {
-    window.alert('Please select at least one question before summarizing.');
+    window.alert(t('summarySelectionEmpty'));
     return;
   }
-  const originalText = button.textContent || summaryAction.label;
+  const originalText =
+    button.textContent ||
+    (summaryAction.key ? t(summaryAction.key) : summaryAction.label) ||
+    t('summarizeSelected');
   button.disabled = true;
-  button.textContent = 'Summarizing...';
+  button.textContent = t('summarizing');
   try {
     await summaryAction.handler(selectedIds);
   } catch (error) {
     console.error('[GPT Exporter] Failed to summarize selected questions', error);
-    button.textContent = 'Retry Summary';
+    button.textContent = t('retrySummary');
     setTimeout(() => {
       button.textContent = originalText;
     }, 1200);
@@ -199,8 +236,9 @@ function renderQAList(container: HTMLElement, pairs: QAPair[]) {
 
     const meta = document.createElement('div');
     meta.className = 'gpt-exporter-qa-meta';
-    const answerLabel = pair.answers.length > 1 ? 'answers' : 'answer';
-    meta.textContent = `${pair.answers.length} ${answerLabel}`;
+    meta.dataset.answerCount = String(pair.answers.length);
+    const answerLabelKey = pair.answers.length > 1 ? 'answersLabel' : 'answerLabel';
+    meta.textContent = `${pair.answers.length} ${t(answerLabelKey)}`;
 
     textWrapper.append(summary, meta);
     label.append(checkbox, textWrapper);
@@ -208,13 +246,20 @@ function renderQAList(container: HTMLElement, pairs: QAPair[]) {
   });
 }
 
-function createModalButton(label: string, primary = false) {
+function createModalButton(
+  label: string,
+  primary = false,
+  i18nKey?: Parameters<typeof t>[0],
+) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = label;
   button.className = primary
     ? 'gpt-exporter-btn primary'
     : 'gpt-exporter-btn secondary';
+  if (i18nKey) {
+    button.dataset.i18nKey = i18nKey;
+  }
   return button;
 }
 

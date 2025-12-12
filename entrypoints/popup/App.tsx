@@ -136,11 +136,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    const storage = globalThis.browser?.storage ?? globalThis.chrome?.storage;
-    const listener = (
-      changes: Record<string, browser.storage.StorageChange>,
-      area: string,
-    ) => {
+    const globalAny = globalThis as any;
+    const storage = globalAny.browser?.storage ?? globalAny.chrome?.storage;
+    const listener = (changes: Record<string, any>, area: string) => {
       if (area !== 'sync' && area !== 'local') return;
       if (!changes['gptExporterLocale']) return;
       const next = resolveLocale(changes['gptExporterLocale'].newValue);
