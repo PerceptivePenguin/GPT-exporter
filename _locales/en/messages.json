@@ -1,5 +1,5 @@
 {
-  "settingsTitle": { "message": "GPT Exporter Settings" },
+  "settingsTitle": { "message": "Settings" },
   "tabProviders": { "message": "Providers" },
   "tabPrompt": { "message": "Summary Prompt" },
   "providersTitle": { "message": "Providers" },

@@ -11,12 +11,12 @@
 }
 
 .lang-toggle-face {
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--card);
   border: var(--stroke);
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.13);
+  box-shadow: var(--shadow-pop);
   display: flex;
   align-items: center;
   justify-content: center;
