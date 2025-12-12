@@ -11,7 +11,7 @@ export function injectUIStyles(
   style.id = styleId;
   const floatingButtonsCss = floatingButtonIds
     .map((id, index) => {
-      const bottom = 72 + index * 48;
+      const bottom = 80 + index * 56;
       return `
       #${id} {
         position: fixed;
@@ -19,9 +19,12 @@ export function injectUIStyles(
         bottom: ${bottom}px;
         z-index: 9999;
         padding: 11px 14px;
+        min-width: 112px;
+        height: 44px;
+        text-align: center;
         border-radius: 12px;
         border: 2px solid #212121;
-        background: #ffd900;
+        background: #fff;
         color: #212121;
         font-size: 13px;
         font-weight: 700;
@@ -46,6 +49,9 @@ export function injectUIStyles(
       bottom: 24px;
       z-index: 9999;
       padding: 12px 16px;
+      min-width: 112px;
+      height: 44px;
+      text-align: center;
       border-radius: 12px;
       border: 2px solid #212121;
       background: #ffd900;

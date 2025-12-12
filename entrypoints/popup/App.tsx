@@ -41,7 +41,6 @@ export default function App() {
     defaultModel: '',
   });
   const [saving, setSaving] = useState(false);
-  const [activeSaving, setActiveSaving] = useState(false);
   const [promptTemplate, setPromptTemplate] = useState('');
   const [promptSaving, setPromptSaving] = useState(false);
 
@@ -97,21 +96,12 @@ export default function App() {
     if (!currentProvider) return;
     setSaving(true);
     try {
-      const updated = await updateProviderConfig(currentProvider.id, formState);
-      setRegistry(updated);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSetActive(providerId: string) {
-    setActiveSaving(true);
-    try {
-      await setActiveProvider(providerId);
+      await updateProviderConfig(currentProvider.id, formState);
+      await setActiveProvider(currentProvider.id);
       const refreshed = await loadProviderRegistry();
       setRegistry(refreshed);
     } finally {
-      setActiveSaving(false);
+      setSaving(false);
     }
   }
 
@@ -200,9 +190,6 @@ export default function App() {
                     onClick={() => setSelectedProviderId(provider.id)}
                   >
                     <span>{provider.name}</span>
-                    {registry?.activeProviderId === provider.id && (
-                      <span className="badge">{tr('activeBadge')}</span>
-                    )}
                   </button>
                 ))}
               </div>
@@ -239,13 +226,6 @@ export default function App() {
                     />
                   </label>
                   <div className="actions">
-                    <button
-                      className="secondary"
-                      onClick={() => handleSetActive(currentProvider.id)}
-                      disabled={activeSaving}
-                    >
-                      {activeSaving ? tr('setting') : tr('setActive')}
-                    </button>
                     <button
                       className="primary"
                       onClick={handleSaveProvider}
