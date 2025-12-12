@@ -110,7 +110,7 @@ body {
   flex-direction: column;
   gap: 0.6rem;
   height: 360px;
-  flex: 1;
+  flex: 0 0 360px;
   min-width: 0;
   overflow: hidden;
 }
@@ -250,7 +250,7 @@ textarea {
 .actions button {
   border-radius: 10px;
   padding: 0 1rem;
-  min-height: 44px;
+  height: 36px;
   border: var(--stroke);
   cursor: pointer;
   font-weight: 600;
