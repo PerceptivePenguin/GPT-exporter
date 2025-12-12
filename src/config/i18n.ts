@@ -9,28 +9,65 @@ export const DEFAULT_LOCALE: Locale = 'zh';
 
 let cachedLocale: Locale = DEFAULT_LOCALE;
 
+function getStorage() {
+  if (typeof browser !== 'undefined' && browser?.storage) return browser.storage;
+  if (typeof chrome !== 'undefined' && chrome?.storage) return chrome.storage;
+  return null;
+}
+
+function readFromLocalStorage(): Locale {
+  try {
+    return resolveLocale(localStorage.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+function persistToLocalStorage(locale: Locale) {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // localStorage may be unavailable in some contexts; ignore failures.
+  }
+}
+
 export function resolveLocale(value?: string | null): Locale {
   return value === 'en' || value === 'zh' ? value : DEFAULT_LOCALE;
 }
 
 export async function loadLocale(): Promise<Locale> {
+  const storage = getStorage();
   try {
-    const stored =
-      (await browser?.storage?.sync?.get(LOCALE_STORAGE_KEY)) ??
-      (await browser?.storage?.local?.get(LOCALE_STORAGE_KEY));
-    const next = resolveLocale(stored?.[LOCALE_STORAGE_KEY]);
-    cachedLocale = next;
-    return next;
+    if (storage) {
+      const stored =
+        (await storage.sync?.get?.(LOCALE_STORAGE_KEY)) ??
+        (await storage.local?.get?.(LOCALE_STORAGE_KEY));
+      const next = resolveLocale(stored?.[LOCALE_STORAGE_KEY]);
+      cachedLocale = next;
+      persistToLocalStorage(next);
+      return next;
+    }
   } catch (error) {
     console.warn('[GPT Exporter] Failed to load locale', error);
-    cachedLocale = DEFAULT_LOCALE;
-    return DEFAULT_LOCALE;
   }
+  const fallback = readFromLocalStorage();
+  cachedLocale = fallback;
+  return fallback;
 }
 
 export async function saveLocale(locale: Locale) {
   cachedLocale = locale;
-  await browser?.storage?.sync?.set({ [LOCALE_STORAGE_KEY]: locale });
+  const storage = getStorage();
+  try {
+    if (storage?.sync?.set) {
+      await storage.sync.set({ [LOCALE_STORAGE_KEY]: locale });
+    } else if (storage?.local?.set) {
+      await storage.local.set({ [LOCALE_STORAGE_KEY]: locale });
+    }
+  } catch (error) {
+    console.warn('[GPT Exporter] Failed to save locale', error);
+  }
+  persistToLocalStorage(locale);
 }
 
 export function setLocaleCache(locale: Locale) {

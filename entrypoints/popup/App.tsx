@@ -10,7 +10,17 @@ import {
   loadSummaryPromptTemplate,
   saveSummaryPromptTemplate,
 } from '../../src/config/summary-prompt';
+import {
+  DEFAULT_LOCALE,
+  loadLocale,
+  saveLocale,
+  setLocaleCache,
+  t,
+  type Locale,
+  resolveLocale,
+} from '../../src/config/i18n';
 import './App.css';
+import { LanguageSwitch } from './components/LanguageSwitch';
 
 type FormState = {
   baseUrl: string;
@@ -24,6 +34,7 @@ export default function App() {
   const [registry, setRegistry] = useState<ProviderRegistry | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [activePanel, setActivePanel] = useState<ActivePanel>('providers');
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [formState, setFormState] = useState<FormState>({
     baseUrl: '',
     apiKey: '',
@@ -59,11 +70,16 @@ export default function App() {
     [registry?.providers],
   );
 
+  const tr = (key: Parameters<typeof t>[0]) => t(key, locale);
+
   async function bootstrap() {
-    const [loadedRegistry, template] = await Promise.all([
+    const [loadedRegistry, template, loadedLocale] = await Promise.all([
       loadProviderRegistry(),
       loadSummaryPromptTemplate(),
+      loadLocale(),
     ]);
+    setLocale(loadedLocale);
+    setLocaleCache(loadedLocale);
     setRegistry(loadedRegistry);
     setSelectedProviderId(loadedRegistry.activeProviderId);
     setPromptTemplate(template);
@@ -113,41 +129,66 @@ export default function App() {
     await saveSummaryPromptTemplate(DEFAULT_SUMMARY_PROMPT);
   }
 
+  async function handleToggleLocale(next: Locale) {
+    setLocale(next);
+    setLocaleCache(next);
+    await saveLocale(next);
+  }
+
+  useEffect(() => {
+    const storage = globalThis.browser?.storage ?? globalThis.chrome?.storage;
+    const listener = (
+      changes: Record<string, browser.storage.StorageChange>,
+      area: string,
+    ) => {
+      if (area !== 'sync' && area !== 'local') return;
+      if (!changes['gptExporterLocale']) return;
+      const next = resolveLocale(changes['gptExporterLocale'].newValue);
+      setLocale(next);
+      setLocaleCache(next);
+    };
+    storage?.onChanged?.addListener(listener);
+    return () => {
+      storage?.onChanged?.removeListener(listener);
+    };
+  }, []);
+
   return (
     <div className="settings-shell">
       <div className="settings-popup">
         <div className="settings-header">
-          <h1>GPT Exporter Settings</h1>
-          <div className="panel-switch" role="tablist" aria-label="Settings tabs">
-            <button
-              type="button"
-            className={activePanel === 'providers' ? 'active' : ''}
-            onClick={() => setActivePanel('providers')}
-            title="Providers"
-            aria-pressed={activePanel === 'providers'}
-          >
-            <ProvidersIcon />
-          </button>
-          <button
-            type="button"
-            className={activePanel === 'prompt' ? 'active' : ''}
-            onClick={() => setActivePanel('prompt')}
-            title="Summary Prompt"
-            aria-pressed={activePanel === 'prompt'}
-          >
-            <PromptIcon />
-          </button>
+          <h1>{tr('settingsTitle')}</h1>
+          <div className="header-actions">
+            <LanguageSwitch locale={locale} onChange={handleToggleLocale} />
+            <div className="panel-switch" role="tablist" aria-label="Settings tabs">
+              <button
+                type="button"
+                className={activePanel === 'providers' ? 'active' : ''}
+                onClick={() => setActivePanel('providers')}
+                title={tr('tabProviders')}
+                aria-pressed={activePanel === 'providers'}
+              >
+                <ProvidersIcon />
+              </button>
+              <button
+                type="button"
+                className={activePanel === 'prompt' ? 'active' : ''}
+                onClick={() => setActivePanel('prompt')}
+                title={tr('tabPrompt')}
+                aria-pressed={activePanel === 'prompt'}
+              >
+                <PromptIcon />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
         {activePanel === 'providers' && (
           <section className="panel">
             <header>
               <div>
-                <h2>Providers</h2>
-                <p className="subtitle">
-                  Configure base URL、API Key、默认模型，并设置当前使用的服务商。
-                </p>
+                <h2>{tr('providersTitle')}</h2>
+                <p className="subtitle">{tr('providersSubtitle')}</p>
               </div>
             </header>
             <div className="provider-layout">
@@ -162,7 +203,7 @@ export default function App() {
                   >
                     <span>{provider.name}</span>
                     {registry?.activeProviderId === provider.id && (
-                      <span className="badge">Active</span>
+                      <span className="badge">{tr('activeBadge')}</span>
                     )}
                   </button>
                 ))}
@@ -170,7 +211,7 @@ export default function App() {
               {currentProvider ? (
                 <div className="provider-form">
                   <label>
-                    Base URL
+                    {tr('baseUrl')}
                     <input
                       type="text"
                       value={formState.baseUrl}
@@ -180,7 +221,7 @@ export default function App() {
                     />
                   </label>
                   <label>
-                    API Key
+                    {tr('apiKey')}
                     <input
                       type="password"
                       value={formState.apiKey}
@@ -190,7 +231,7 @@ export default function App() {
                     />
                   </label>
                   <label>
-                    Default Model
+                    {tr('defaultModel')}
                     <input
                       type="text"
                       value={formState.defaultModel}
@@ -205,19 +246,19 @@ export default function App() {
                       onClick={() => handleSetActive(currentProvider.id)}
                       disabled={activeSaving}
                     >
-                      {activeSaving ? 'Setting...' : 'Set Active'}
+                      {activeSaving ? tr('setting') : tr('setActive')}
                     </button>
                     <button
                       className="primary"
                       onClick={handleSaveProvider}
                       disabled={saving}
                     >
-                      {saving ? 'Saving...' : 'Save Provider'}
+                      {saving ? tr('saving') : tr('saveProvider')}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="provider-form empty">请选择左侧服务商</div>
+                <div className="provider-form empty">{tr('providerEmpty')}</div>
               )}
             </div>
           </section>
@@ -227,12 +268,8 @@ export default function App() {
           <section className="panel">
             <header>
               <div>
-                <h2>Summary Prompt</h2>
-                <p className="subtitle">
-                  自定义总结输出结构，可使用{' '}
-                  <code>{'{{scope}}'}</code> 和{' '}
-                  <code>{'{{conversation}}'}</code> 变量。
-                </p>
+                <h2>{tr('promptTitle')}</h2>
+                <p className="subtitle">{tr('promptSubtitle')}</p>
               </div>
             </header>
             <textarea
@@ -242,14 +279,14 @@ export default function App() {
             />
             <div className="actions">
               <button className="secondary" onClick={handlePromptReset}>
-                Reset Default
+                {tr('resetDefault')}
               </button>
               <button
                 className="primary"
                 onClick={handlePromptSave}
                 disabled={promptSaving}
               >
-                {promptSaving ? 'Saving...' : 'Save Prompt'}
+                {promptSaving ? tr('savePromptSaving') : tr('savePrompt')}
               </button>
             </div>
           </section>
