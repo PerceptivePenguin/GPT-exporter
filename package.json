@@ -1,6 +1,6 @@
 {
   "name": "Gpt Exporter",
-  "description": "manifest.json description",
+  "description": "Browser extension to export selected ChatGPT Q&A to Markdown, with optional structured summaries via configurable LLM providers.",
   "private": true,
   "version": "1.0.0",
   "type": "module",
