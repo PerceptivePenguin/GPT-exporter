@@ -263,6 +263,7 @@ textarea {
 .actions .primary {
   background: var(--accent);
   color: #111;
+  min-width: 80px;
 }
 
 .actions .secondary {

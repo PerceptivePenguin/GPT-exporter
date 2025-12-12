@@ -211,8 +211,10 @@ async function handleSummary(
     t('summarizeSelected');
   button.disabled = true;
   button.textContent = t('summarizing');
+  let succeeded = false;
   try {
     await summaryAction.handler(selectedIds);
+    succeeded = true;
   } catch (error) {
     console.error('[GPT Exporter] Failed to summarize selected questions', error);
     button.textContent = t('retrySummary');
@@ -220,6 +222,9 @@ async function handleSummary(
       button.textContent = originalText;
     }, 1200);
   } finally {
+    if (succeeded) {
+      button.textContent = originalText;
+    }
     button.disabled = false;
   }
 }
