@@ -11,6 +11,12 @@ GPT Exporter 为 ChatGPT 添加导出和导航功能。它直接从页面解析�
 - Microsoft Edge
 - Mozilla Firefox
 
+## 功能截图
+
+|                  设置服务商                  |                   总结提示词                   |                    问题导航                    |                     问题高亮页                     |                    导出为MD                    |
+| :------------------------------------: | :----------------------------------------: | :--------------------------------------------: | :--------------------------------------------: | :------------------------------------------: |
+| ![provider](./assets/screenshots/provider.png) | ![prompt](./assets/screenshots/prompt.png) | ![nav](./assets/screenshots/nav.png) | ![select](./assets/screenshots/highlighting.png) | ![highlighting](./assets/screenshots/select.png) |
+
 ## 安装方式
 
 ### Chrome / Edge

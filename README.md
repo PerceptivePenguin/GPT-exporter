@@ -11,6 +11,12 @@ Works on:
 - Microsoft Edge
 - Mozilla Firefox
 
+## Screenshots
+
+|                  Provider Setting                  |                   Summary Prompt                   |                    Question Navigator                    |                     Question Highlighting                     |                    Export as MD                    |
+| :------------------------------------: | :----------------------------------------: | :--------------------------------------------: | :--------------------------------------------: | :------------------------------------------: |
+| ![provider](./assets/screenshots/provider.png) | ![prompt](./assets/screenshots/prompt.png) | ![nav](./assets/screenshots/nav.png) | ![select](./assets/screenshots/highlighting.png) | ![highlighting](./assets/screenshots/select.png) |
+
 ## Installation
 
 ### Chrome / Edge

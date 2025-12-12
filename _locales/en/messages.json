@@ -41,7 +41,7 @@
   "summaryFilePrompt": { "message": "Enter summary file name (without extension). Leave blank to use default." },
   "exportFilePrompt": { "message": "Enter export file name (without extension). Leave blank to use default." },
   "modalTitle": { "message": "Select Questions" },
-  "modalSubtitle": { "message": "Choose the prompts you want to include. Only questions with responses appear here." },
+  "modalSubtitle": { "message": "Choose the prompts you want to include." },
   "exportSelected": { "message": "Export Selected" },
   "exporting": { "message": "Exporting..." },
   "retryExport": { "message": "Retry Export" },

@@ -41,7 +41,7 @@
   "summaryFilePrompt": { "message": "输入总结文件名（不含扩展名），留空则使用默认值。" },
   "exportFilePrompt": { "message": "输入导出文件名（不含扩展名），留空则使用默认值。" },
   "modalTitle": { "message": "选择问题" },
-  "modalSubtitle": { "message": "选择要包含的提问，仅已收到回答的问题会显示。" },
+  "modalSubtitle": { "message": "选择要包含的提问、" },
   "exportSelected": { "message": "导出所选" },
   "exporting": { "message": "导出中..." },
   "retryExport": { "message": "重试导出" },
