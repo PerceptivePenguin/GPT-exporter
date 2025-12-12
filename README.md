@@ -33,10 +33,10 @@ GPT Exporter 为 ChatGPT 添加导出和导航功能。它直接从页面解析�
 ### Firefox
 
 1. 前往 [Releases](../../releases) 页面
-2. 下载 Firefox 版本的 `.xpi` 文件
+2. 下载 Firefox 版本的 `.zip` 文件
 3. 打开 Firefox，进入 `about:addons`
 4. 点击齿轮图标，选择"从文件安装附加组件..."
-5. 选择下载的 `.xpi` 文件
+5. 选择下载的 `.zip` 文件
 
 ## 使用方法
 

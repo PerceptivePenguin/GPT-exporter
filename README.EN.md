@@ -33,10 +33,10 @@ Works on:
 ### Firefox
 
 1. Go to the [Releases](../../releases) page
-2. Download the `.xpi` file for Firefox
+2. Download the `.zip` file for Firefox
 3. Open Firefox and go to `about:addons`
 4. Click the gear icon and select "Install Add-on From File..."
-5. Select the downloaded `.xpi` file
+5. Select the downloaded `.zip` file
 
 ## Usage
 
